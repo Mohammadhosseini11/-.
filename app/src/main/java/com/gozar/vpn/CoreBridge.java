@@ -17,6 +17,14 @@ import java.util.Enumeration;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+/**
+ * پل بازتابی به هستهٔ Xray (wrapper اختصاصی gozar.* روی xtls/xray-core):
+ *  - لاگ حلقه‌ای + ذخیرهٔ فایل (حتی بعد از کرش باقی می‌ماند)
+ *  - InitV2Env / اجرای هسته / پراکسی protect-fatal
+ *  - پل TUN با TunBridge (hev) + فالبک پل بومی AAR
+ *  - hev.yaml با MTU / سطح لاگ / تایم‌اوت‌ها از gozar-vpn.json
+ *  - حذف خودکار قواعد geo اگر فایل dat نباشد
+ */
 public final class CoreBridge {
     private static final String TAG = "GozarCore";
     private static final StringBuilder ring = new StringBuilder();
@@ -65,7 +73,7 @@ public final class CoreBridge {
         } catch (Throwable ignored) {}
     }
 
-    /* ═══════════ شروع ═══════════ */
+    /* ═══════════ شروع تونل ═══════════ */
 
     public static void start(String configJson, int tunFd, String filesDir, String nativeDir) throws Exception {
         if (running) stop();
@@ -106,7 +114,7 @@ public final class CoreBridge {
                 setter.invoke(point, proxy);
                 log("support bound: " + setter.getName() + " (" + itf.getName() + ")");
             } else {
-                log("support setter NOT found");
+                log("support setter NOT found (bindProcessToNetwork handles egress)");
             }
         } catch (Throwable t) { log("support bind failed: " + t); }
 
@@ -163,7 +171,8 @@ public final class CoreBridge {
         if (point != null && startMethod != null) return;
 
         Class<?> pc = null;
-        String[] names = { "v2ray.V2RayPoint", "go.V2RayPoint", "v2ray.core.V2RayPoint" };
+        /* wrapper اختصاصی ما اولویت دارد */
+        String[] names = { "gozar.V2RayPoint", "v2ray.V2RayPoint", "go.V2RayPoint", "v2ray.core.V2RayPoint" };
         for (String nm : names) {
             pc = classFor(nm);
             if (pc != null) { log("V2RayPoint at " + nm); break; }
@@ -189,7 +198,8 @@ public final class CoreBridge {
                         } catch (Throwable ignored) {}
                     }
                     if (sample.length() < 3500
-                            && (cn.startsWith("v2ray") || cn.startsWith("go.") || cn.startsWith("io.")
+                            && (cn.startsWith("v2ray") || cn.startsWith("gozar")
+                                || cn.startsWith("go.") || cn.startsWith("io.")
                                 || cn.startsWith("com."))) {
                         sample.append(cn).append(' ');
                     }
@@ -199,11 +209,19 @@ public final class CoreBridge {
         }
 
         if (pc == null) {
-            throw new Exception("V2RayPoint class NOT found in AAR — فایل AAR نامعتبر است؛ لاگ مرحلهٔ «دانلود/بازسازی هسته» در Actions را ببینید");
+            throw new Exception("V2RayPoint class NOT found in AAR");
         }
 
         point = staticInstance(pc);
-        if (point == null) throw new Exception("V2RayPoint instance not found");
+        if (point == null) {
+            /* wrapper ما singleton استاتیک ندارد — با سازنده بساز */
+            try {
+                point = pc.getDeclaredConstructor().newInstance();
+                log("V2RayPoint instantiated via constructor");
+            } catch (Throwable t) {
+                throw new Exception("V2RayPoint instance not found: " + t);
+            }
+        }
 
         for (Method m : pc.getMethods()) {
             String n = m.getName().toLowerCase();
@@ -214,9 +232,13 @@ public final class CoreBridge {
                     && !n.contains("loop")) stopMethod = m;
         }
 
+        /* کلاس‌های کمکی شناخته‌شده + wrapper خودمان */
         scanClass(classFor("v2ray.Libv2ray"));
         scanClass(classFor("v2ray.Tun2Socks"));
+        scanClass(classFor("gozar.Gozar"));
+        scanClass(classFor("libv2ray.Libv2ray"));
 
+        /* اسکن سراسری v2ray.* و gozar.* برای InitV2Env / loop */
         if (sApkPath != null) {
             try {
                 DexFile dex = new DexFile(sApkPath);
@@ -224,13 +246,14 @@ public final class CoreBridge {
                 int scanned = 0;
                 while (en.hasMoreElements() && scanned < 2000) {
                     String cn = en.nextElement();
-                    if (!cn.startsWith("v2ray.") || cn.contains("$")) continue;
+                    if (!cn.startsWith("v2ray.") && !cn.startsWith("gozar.")) continue;
+                    if (cn.contains("$")) continue;
                     scanned++;
                     try {
                         scanClass(Class.forName(cn, false, CoreBridge.class.getClassLoader()));
                     } catch (Throwable ignored) {}
                 }
-                log("api scan: " + scanned + " v2ray.* classes");
+                log("api scan: " + scanned + " core classes");
             } catch (Throwable t) { log("api scan skipped: " + t); }
         }
 
@@ -368,6 +391,8 @@ public final class CoreBridge {
         return false;
     }
 
+    /* ═══════════ hev.yaml — با پارامترهای پنل ═══════════ */
+
     private static void writeYaml(String path, String filesDir) throws Exception {
         int mtu = 8500;
         String lvl = "warn";
@@ -401,6 +426,8 @@ public final class CoreBridge {
         w.write(y.toString());
         w.close();
     }
+
+    /* ═══════════ پاک‌سازی قواعد geo ═══════════ */
 
     private static String sanitize(String json) {
         try {
