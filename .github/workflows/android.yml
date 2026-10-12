@@ -118,13 +118,17 @@ jobs:
           go mod tidy 2>&1 | tee go-tidy.log
           echo "== go mod tidy OK =="
 
-      # ═══ ساخت هستهٔ Xray — لاگ کامل ذخیره و در صورت شکست چاپ می‌شود ═══
+      # ═══ ساخت هستهٔ Xray — با افزودن وابستگی mobile قبل از bind ═══
       - name: بیلد هستهٔ Xray (gomobile bind)
         run: |
           export ANDROID_NDK_HOME=$NDK_PATH
           export PATH=$PATH:$(go env GOPATH)/bin
           export GOTOOLCHAIN=auto
           cd core-src
+          # رفع خطای «missing golang.org/x/mobile dependency»
+          go get golang.org/x/mobile/cmd/gobind@latest
+          go get golang.org/x/mobile@latest
+          go mod tidy || true
           set +e
           gomobile bind -v -target=android -androidapi 24 \
             -ldflags='-s -w' -o ../app/libs/libv2ray.aar ./ 2>&1 | tee gomobile.log
@@ -134,7 +138,7 @@ jobs:
             echo "═════════════ خطای gomobile — ۸۰ خط آخر ═════════════"
             tail -80 gomobile.log
             echo "═════════════ پایان خطا ═════════════"
-            mkdir -p ../faillog && cp gomobile.log go-tidy.log ../faillog/ 2>/dev/null || true
+            mkdir -p ../faillog && cp gomobile.log ../faillog/ 2>/dev/null || true
             exit 1
           fi
           echo "gomobile bind OK ✓"
@@ -264,7 +268,6 @@ jobs:
           gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
           test "${PIPESTATUS[0]}" -eq 0
 
-      # ═══ گزارش شکست: هیچ‌وقت خودش نمی‌شکند؛ همه‌چیز را چاپ و آپلود می‌کند ═══
       - name: گزارش خطاها (در صورت شکست)
         if: failure()
         run: |
