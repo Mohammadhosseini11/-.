@@ -18,10 +18,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Ù†ØµØ¨ Go 1.22
+      - name: Ù†ØµØ¨ Go 1.23
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.23'
 
       - name: Ù†ØµØ¨ Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
@@ -37,14 +37,18 @@ jobs:
           fi
           echo "NDK_PATH=$NDK" >> $GITHUB_ENV
 
-      # â•â•â• Ù‡Ø³ØªÙ‡Ù” Xray: Ø¯Ø§Ù†Ù„ÙˆØ¯ â†’ Ø§Ø¹ØªØ¨Ø§Ø±Ø³Ù†Ø¬ÛŒ â†’ Ø¨Ø§Ø²Ø³Ø§Ø²ÛŒ Ø§Ø² Ø³ÙˆØ±Ø³ (ÙØ§Ù„â€ŒØ¨Ú©â€ŒÙ‡Ø§ÛŒ Ù…ØªØ¹Ø¯Ø¯) â•â•â•
+      # â•â•â• Ù‡Ø³ØªÙ‡Ù” Xray: Ø¯Ø§Ù†Ù„ÙˆØ¯ Ù‡ÙˆØ´Ù…Ù†Ø¯ â†’ Ø¯Ø± ØµÙˆØ±Øª Ù†Ø§Ù…Ø¹ØªØ¨Ø±ÛŒØŒ Ø¨Ø§Ø²Ø³Ø§Ø²ÛŒ Ø§Ø² Ø³ÙˆØ±Ø³ â•â•â•
       - name: Ø¯Ø§Ù†Ù„ÙˆØ¯ / Ø¨Ø§Ø²Ø³Ø§Ø²ÛŒ Ù‡Ø³ØªÙ‡Ù” Xray (AAR)
         run: |
           set -e
           mkdir -p app/libs
-          echo "== ØªÙ„Ø§Ø´ Û±: Ø¯Ø§Ù†Ù„ÙˆØ¯ Release 2dust =="
-          curl -fL --retry 3 -o app/libs/libv2ray.aar \
-            "https://github.com/2dust/AndroidLibXrayLite/releases/latest/download/libv2ray.aar" || true
+          echo "== ØªÙ„Ø§Ø´ Û±: Ø¯Ø§Ù†Ù„ÙˆØ¯ AAR Ø§Ø² Ø¢Ø®Ø±ÛŒÙ† Release (Ø§Ø² Ø·Ø±ÛŒÙ‚ API) =="
+          URL=$(curl -s https://api.github.com/repos/2dust/AndroidLibXrayLite/releases/latest \
+                | grep -o '"browser_download_url": *"[^"]*\.aar"' | head -1 | cut -d'"' -f4 || true)
+          echo "asset URL: $URL"
+          if [ -n "$URL" ]; then
+            curl -fL --retry 3 -o app/libs/libv2ray.aar "$URL" || true
+          fi
           SIZE=$(stat -c%s app/libs/libv2ray.aar 2>/dev/null || echo 0)
           echo "AAR size: $SIZE bytes"
           OK=0
@@ -57,39 +61,34 @@ jobs:
 
           if [ "$OK" -ne 1 ]; then
             echo "== ØªÙ„Ø§Ø´ Û²: Ø¨Ø§Ø²Ø³Ø§Ø²ÛŒ Ø§Ø² Ø³ÙˆØ±Ø³ Ø¨Ø§ gomobile =="
+            echo "   Ù†Ú©ØªÙ‡: Ù¾Ú©ÛŒØ¬ Ú¯Ùˆ Ø¯Ø± Ù¾ÙˆØ´Ù‡Ù” libv2ray/ Ø§Ø³Øª (Ù†Ù‡ Ø±ÛŒØ´Ù‡Ù” Ù…Ø®Ø²Ù†)"
             rm -f app/libs/libv2ray.aar
             export ANDROID_NDK_HOME=$NDK_PATH
             export PATH=$PATH:$(go env GOPATH)/bin
             go install golang.org/x/mobile/cmd/gomobile@latest
             go install golang.org/x/mobile/cmd/gobind@latest
-            gomobile init || true
+            gomobile init
             git clone --depth 1 https://github.com/2dust/AndroidLibXrayLite core-src
             cd core-src
-            # Ù†Ø§Ù… Ù…Ø§Ú˜ÙˆÙ„ Ú¯Ùˆ Ø±Ø§ Ù¾ÛŒØ¯Ø§ Ú©Ù†
-            MODNAME=$(head -1 go.mod | awk '{print $2}')
-            echo "go module: $MODNAME"
-            go mod download || true
-            # Ø§Ú¯Ø± libv2ray Ù¾Ú©ÛŒØ¬ Ø¬Ø¯Ø§ Ø¯Ø§Ø±Ø¯ØŒ Ø§Ø² Ù‡Ù…Ø§Ù† Ø¨Ø³Ø§Ø²
-            BINDDIR=.
-            if [ -d libv2ray ]; then BINDDIR=./libv2ray; fi
+            go mod download
+            set -o pipefail
+            # â•â•â• Ø¯Ø³ØªÙˆØ± Ø¯Ø±Ø³Øª: bind Ù¾Ú©ÛŒØ¬ libv2ray (Ù†Ù‡ Ø±ÛŒØ´Ù‡Ù” Ù…Ø®Ø²Ù†) â•â•â•
             gomobile bind -v -target=android -androidapi 24 \
-              -ldflags='-s -w' -o "$OLDPWD/app/libs/libv2ray.aar" $BINDDIR \
-              || gomobile bind -v -target=android -androidapi 24 \
-                 -ldflags='-s -w' -o "$OLDPWD/app/libs/libv2ray.aar" \
-                 $MODNAME/libv2ray
+              -ldflags='-s -w' -o ../app/libs/libv2ray.aar ./libv2ray \
+              2>&1 | tee gomobile.log
             cd ..
           fi
 
-          # Ø§Ø¹ØªØ¨Ø§Ø±Ø³Ù†Ø¬ÛŒ Ù†Ù‡Ø§ÛŒÛŒ
+          # Ø§Ø¹ØªØ¨Ø§Ø±Ø³Ù†Ø¬ÛŒ Ù†Ù‡Ø§ÛŒÛŒ â€” Ø¨Ø§ Ù¾ÛŒØ§Ù… Ø´ÙØ§Ù
           rm -rf /tmp/aarv && mkdir -p /tmp/aarv
           if ! unzip -o -q app/libs/libv2ray.aar classes.jar -d /tmp/aarv; then
-            echo "FATAL: ÙØ§ÛŒÙ„ AAR Ù‚Ø§Ø¨Ù„ Ø¨Ø§Ø²Ø´Ø¯Ù† Ù†ÛŒØ³Øª"
+            echo "FATAL: ÙØ§ÛŒÙ„ AAR Ù‚Ø§Ø¨Ù„ Ø¨Ø§Ø²Ø´Ø¯Ù† Ù†ÛŒØ³Øª â€” Ù„Ø§Ú¯ gomobile.log Ø±Ø§ Ø¨Ø¨ÛŒÙ†ÛŒØ¯"
             exit 1
           fi
           echo "==== Ú©Ù„Ø§Ø³â€ŒÙ‡Ø§ÛŒ v2ray Ø¯Ø§Ø®Ù„ AAR ===="
-          unzip -l /tmp/aarv/classes.jar | grep -i v2ray | head -30 || true
+          unzip -l /tmp/aarv/classes.jar | grep -i -E "v2ray|V2RayPoint" | head -30 || true
           if ! unzip -l /tmp/aarv/classes.jar | grep -qi "V2RayPoint"; then
-            echo "FATAL: V2RayPoint Ø¯Ø± AAR Ù†ÛŒØ³Øª â€” Ù„Ø§Ú¯ gomobile Ø¨Ø§Ù„Ø§ Ø±Ø§ Ø¨Ø¨ÛŒÙ†ÛŒØ¯"
+            echo "FATAL: V2RayPoint Ø¯Ø± AAR Ù†ÛŒØ³Øª â€” Ù„Ø§Ú¯ gomobile.log Ø±Ø§ Ø¨Ø¨ÛŒÙ†ÛŒØ¯"
             exit 1
           fi
           echo "AAR OK âœ“"
@@ -126,7 +125,7 @@ jobs:
           if [ $built -eq 0 ]; then
             CML=$( ( find $HEV -maxdepth 2 -name CMakeLists.txt ) | head -1 || true )
             if [ -n "$CML" ]; then
-              echo "== Ù…Ø³ÛŒØ± Û²: CMake Ø¯Ø± $(dirname $CML) =="
+              echo "== Ù…Ø³ÛŒØ± Û²: CMake =="
               for A in $ABIS; do
                 cmake -S "$(dirname $CML)" -B build-hev/$A \
                   -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
@@ -156,7 +155,7 @@ jobs:
           find hev-out -type f | sort
           N=$(find hev-out -type f | wc -l)
           if [ "$N" -eq 0 ]; then
-            echo "!! Ù‡ÛŒÚ† .a/.so Ø§Ø² hev Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯"; find $HEV -name "*.a" -o -name "*.so" | head -40; exit 1
+            echo "!! Ù‡ÛŒÚ† .a/.so Ø§Ø² hev Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯"; exit 1
           fi
 
       - name: Ø¨ÛŒÙ„Ø¯ Ù¾Ù„ JNI (gozar-tun)
@@ -203,23 +202,32 @@ jobs:
             -storepass gozar-pass-2024 -keypass gozar-pass-2024 \
             -dname "CN=Gozar, O=Gozar, C=IR"
 
-      # â•â•â• Ø¨ÛŒÙ„Ø¯ Gradle: Ù„Ø§Ú¯ Ù‡Ù…ÛŒØ´Ù‡ Ø³Ø§Ø®ØªÙ‡ Ù…ÛŒâ€ŒØ´ÙˆØ¯ Ø­ØªÛŒ Ø§Ú¯Ø± Ø´Ú©Ø³Øª Ø¨Ø®ÙˆØ±Ø¯ â•â•â•
       - name: Ø¨ÛŒÙ„Ø¯ APK (Release Ø§Ù…Ø¶Ø§Ø´Ø¯Ù‡)
         run: |
           gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
-          echo "gradle-exit=${PIPESTATUS[0]}" >> $GITHUB_ENV
           test "${PIPESTATUS[0]}" -eq 0
 
-      - name: Ù†Ù…Ø§ÛŒØ´ Ø®Ø·Ø§Ù‡Ø§ (Ø¯Ø± ØµÙˆØ±Øª Ø´Ú©Ø³Øª)
+      # â•â•â• Ú¯Ø²Ø§Ø±Ø´ Ø´Ú©Ø³Øª: Ù‡Ø± Ù„Ø§Ú¯ÛŒ Ú©Ù‡ Ù‡Ø³Øª Ø±Ø§ Ú†Ø§Ù¾ Ùˆ Ø¨Ù‡â€ŒØ¹Ù†ÙˆØ§Ù† Artifact Ø¢Ù¾Ù„ÙˆØ¯ Ú©Ù† â•â•â•
+      - name: Ú¯Ø²Ø§Ø±Ø´ Ø®Ø·Ø§Ù‡Ø§ (Ø¯Ø± ØµÙˆØ±Øª Ø´Ú©Ø³Øª)
         if: failure()
         run: |
-          if [ -f build.log ]; then
-            grep -n -i -E "error:|cannot find symbol|undefined reference|CMake Error|FAILURE:" build.log | head -80 || true
-            echo "---- Û´Û° Ø®Ø· Ø¢Ø®Ø± Ù„Ø§Ú¯ ----"
-            tail -40 build.log
-          else
-            echo "build.log Ø³Ø§Ø®ØªÙ‡ Ù†Ø´Ø¯ â€” Ø´Ú©Ø³Øª Ù‚Ø¨Ù„ Ø§Ø² Gradle Ø¨ÙˆØ¯Ù‡Ø› Ù…Ø±Ø§Ø­Ù„ Ø¨Ø§Ù„Ø§ØªØ± Ø±Ø§ Ø¨Ø¨ÛŒÙ†ÛŒØ¯"
-          fi
+          mkdir -p faillog
+          for f in aar.log core-src/gomobile.log build.log; do
+            if [ -f "$f" ]; then
+              echo "==== Ø§Ù†ØªÙ‡Ø§ÛŒ $f ===="
+              tail -60 "$f" || true
+              cp "$f" faillog/ || true
+            fi
+          done
+          grep -n -i -E "error|cannot find|undefined|CMake Error|FAILURE:" faillog/* 2>/dev/null | head -80 || true
+
+      - name: Ø¢Ù¾Ù„ÙˆØ¯ Ù„Ø§Ú¯â€ŒÙ‡Ø§ÛŒ Ø´Ú©Ø³Øª
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fail-logs
+          path: faillog/
+          if-no-files-found: ignore
 
       - name: Ø¢Ù¾Ù„ÙˆØ¯ Ú©Ù„ÛŒØ¯ Ø§Ù…Ø¶Ø§ (ÙÙ‚Ø· Ø¨Ø§Ø± Ø§ÙˆÙ„)
         if: ${{ hashFiles('gozar.jks') == '' }}
