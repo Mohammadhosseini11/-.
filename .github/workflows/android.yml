@@ -37,9 +37,7 @@ jobs:
           fi
           echo "NDK_PATH=$NDK" >> $GITHUB_ENV
 
-      # ═══ هستهٔ Xray: wrapper اختصاصی خودمان دور xtls/xray-core ═══
-      # (بدون هیچ وابستگی به AAR بیرونی — همیشه یکسان ساخته می‌شود)
-      - name: ساخت هستهٔ Xray (gomobile)
+      - name: نصب gomobile
         run: |
           set -e
           export ANDROID_NDK_HOME=$NDK_PATH
@@ -47,7 +45,11 @@ jobs:
           go install golang.org/x/mobile/cmd/gomobile@latest
           go install golang.org/x/mobile/cmd/gobind@latest
           gomobile init
+          echo "gomobile: $(gomobile version 2>/dev/null || echo ok)"
 
+      - name: آماده‌سازی wrapper هسته (gozar)
+        run: |
+          set -e
           mkdir -p core-src && cd core-src
           cat > go.mod <<'EOF'
           module gozar
@@ -66,7 +68,6 @@ jobs:
               "github.com/xtls/xray-core/infra/conf/serial"
           )
 
-          // V2RayPoint — سازگار با پل بازتابی جاوا
           type V2RayPoint struct {
               server  *core.Instance
               running bool
@@ -108,18 +109,40 @@ jobs:
 
           func (p *V2RayPoint) IsRunning() bool { return p.running }
 
-          // InitV2Env — مسیر فایل‌های geo را برای هسته تنظیم می‌کند
           func InitV2Env(assetPath string) {
               os.Setenv("XRAY_LOCATION_ASSET", assetPath)
               os.Setenv("V2RAY_LOCATION_ASSET", assetPath)
           }
           EOF
-          go mod tidy
-          echo "== گو ساخته شد — bind با gomobile (۵-۱۰ دقیقه) =="
-          gomobile bind -v -target=android -androidapi 24 \
-            -ldflags='-s -w' -o ../app/libs/libv2ray.aar ./
-          cd ..
+          export GOTOOLCHAIN=auto
+          go mod tidy 2>&1 | tee go-tidy.log
+          echo "== go mod tidy OK =="
 
+      # ═══ ساخت هستهٔ Xray — لاگ کامل ذخیره و در صورت شکست چاپ می‌شود ═══
+      - name: بیلد هستهٔ Xray (gomobile bind)
+        run: |
+          export ANDROID_NDK_HOME=$NDK_PATH
+          export PATH=$PATH:$(go env GOPATH)/bin
+          export GOTOOLCHAIN=auto
+          cd core-src
+          set +e
+          gomobile bind -v -target=android -androidapi 24 \
+            -ldflags='-s -w' -o ../app/libs/libv2ray.aar ./ 2>&1 | tee gomobile.log
+          RC=${PIPESTATUS[0]}
+          set -e
+          if [ "$RC" -ne 0 ]; then
+            echo "═════════════ خطای gomobile — ۸۰ خط آخر ═════════════"
+            tail -80 gomobile.log
+            echo "═════════════ پایان خطا ═════════════"
+            mkdir -p ../faillog && cp gomobile.log go-tidy.log ../faillog/ 2>/dev/null || true
+            exit 1
+          fi
+          echo "gomobile bind OK ✓"
+
+      - name: اعتبارسنجی AAR
+        run: |
+          set -e
+          ls -la app/libs/
           rm -rf /tmp/aarv && mkdir -p /tmp/aarv
           unzip -o -q app/libs/libv2ray.aar classes.jar -d /tmp/aarv
           echo "==== کلاس‌های داخل AAR ===="
@@ -241,17 +264,21 @@ jobs:
           gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
           test "${PIPESTATUS[0]}" -eq 0
 
+      # ═══ گزارش شکست: هیچ‌وقت خودش نمی‌شکند؛ همه‌چیز را چاپ و آپلود می‌کند ═══
       - name: گزارش خطاها (در صورت شکست)
         if: failure()
         run: |
-          mkdir -p faillog
-          for f in build.log core-src/gomobile.log; do
+          mkdir -p faillog || true
+          shopt -s nullglob
+          for f in core-src/gomobile.log core-src/go-tidy.log build.log; do
             if [ -f "$f" ]; then
-              echo "==== انتهای $f ===="; tail -60 "$f" || true
+              echo "════ انتهای $f ════"
+              tail -60 "$f" || true
               cp "$f" faillog/ || true
             fi
           done
           grep -n -i -E "error|cannot find|undefined|CMake Error|FAILURE:" faillog/* 2>/dev/null | head -80 || true
+          echo "(گزارش کامل شد)"
 
       - name: آپلود لاگ‌های شکست
         if: failure()
