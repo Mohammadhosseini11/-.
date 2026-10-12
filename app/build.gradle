@@ -1,5 +1,7 @@
 plugins { id 'com.android.application' }
 
+def runNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
+
 android {
     namespace 'com.gozar.vpn'
     compileSdk 34
@@ -8,14 +10,27 @@ android {
         applicationId "com.gozar.vpn"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode runNumber
+        versionName "2.4." + runNumber
+    }
+
+    signingConfigs {
+        release {
+            storeFile rootProject.file("gozar.jks")
+            storePassword System.getenv("KS_PASS") ?: "gozar-pass-2024"
+            keyAlias "gozar"
+            keyPassword System.getenv("KS_PASS") ?: "gozar-pass-2024"
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            signingConfig signingConfigs.release
         }
     }
 
