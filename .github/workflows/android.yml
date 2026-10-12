@@ -5,6 +5,9 @@ on:
   push:
     branches: [ main, master ]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -37,7 +40,32 @@ jobs:
           fi
           echo "NDK_PATH=$NDK" >> $GITHUB_ENV
 
+      # ═══ هستهٔ Xray: اول از کش Release، نبود → بیلد و ذخیره در کش ═══
+      - name: بررسی کش AAR هسته
+        id: aar_cache
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p app/libs
+          FOUND=0
+          if gh release view core-aar -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            if gh release download core-aar -R "$GITHUB_REPOSITORY" \
+                 -p "libv2ray.aar" -O app/libs/libv2ray.aar >/dev/null 2>&1; then
+              SIZE=$(stat -c%s app/libs/libv2ray.aar 2>/dev/null || echo 0)
+              echo "کش: $SIZE bytes"
+              if [ "$SIZE" -gt 2000000 ]; then FOUND=1; fi
+            fi
+          fi
+          if [ "$FOUND" -ne 1 ]; then
+            rm -f app/libs/libv2ray.aar
+            echo "کش موجود نبود — بیلد از سورس انجام می‌شود"
+          else
+            echo "AAR از کش Release دریافت شد ✓"
+          fi
+          echo "found=$FOUND" >> $GITHUB_OUTPUT
+
       - name: نصب gomobile
+        if: steps.aar_cache.outputs.found != '1'
         run: |
           set -e
           export ANDROID_NDK_HOME=$NDK_PATH
@@ -45,46 +73,44 @@ jobs:
           go install golang.org/x/mobile/cmd/gomobile@latest
           go install golang.org/x/mobile/cmd/gobind@latest
           gomobile init
-          echo "gomobile: $(gomobile version 2>/dev/null || echo ok)"
 
-      # ═══ wrapper از فایل‌های خود ریپو کپی می‌شود ═══
-      - name: آماده‌سازی wrapper هسته (از core-src ریپو)
+      - name: بیلد هسته (فقط اگر کش نبود)
+        if: steps.aar_cache.outputs.found != '1'
         run: |
           set -e
-          if [ ! -f core-src/gozar.go ]; then
-            echo "FATAL: core-src/gozar.go در ریپو نیست — آن را طبق دستورالعمل کامیت کنید"
-            exit 1
-          fi
-          echo "== فایل‌های wrapper =="
-          cat core-src/go.mod
-          cat core-src/gozar.go
-
-      # ═══ وابستگی‌ها + ساخت AAR هسته ═══
-      - name: بیلد هستهٔ Xray (gomobile bind)
-        run: |
+          test -f core-src/gozar.go || { echo "FATAL: core-src/gozar.go در ریپو نیست"; exit 1; }
           export ANDROID_NDK_HOME=$NDK_PATH
           export PATH=$PATH:$(go env GOPATH)/bin
           export GOTOOLCHAIN=auto
           cd core-src
-          echo "== go mod tidy =="
           go mod tidy 2>&1 | tee go-tidy.log
-          echo "== go get x/mobile (بدون tidy بعدی!) =="
           go get golang.org/x/mobile@latest
           go get golang.org/x/mobile/cmd/gobind@latest
-          grep -n "golang.org/x/mobile" go.mod || { echo "FATAL: x/mobile در go.mod ثبت نشد"; exit 1; }
+          grep -n "golang.org/x/mobile" go.mod || { echo "FATAL: x/mobile ثبت نشد"; exit 1; }
           set +e
           gomobile bind -v -target=android -androidapi 24 \
             -ldflags='-s -w' -o ../app/libs/libv2ray.aar ./ 2>&1 | tee gomobile.log
           RC=${PIPESTATUS[0]}
           set -e
           if [ "$RC" -ne 0 ]; then
-            echo "═════════════ خطای gomobile — ۸۰ خط آخر ═════════════"
-            tail -80 gomobile.log
-            echo "═════════════ پایان خطا ═════════════"
-            mkdir -p ../faillog && cp gomobile.log go.mod go.sum ../faillog/ 2>/dev/null || true
+            echo "═════════════ خطای gomobile — ۱۰۰ خط آخر ═════════════"
+            tail -100 gomobile.log
+            echo "═════════════ پایان ═════════════"
+            mkdir -p ../faillog && cp gomobile.log ../faillog/ 2>/dev/null || true
             exit 1
           fi
-          echo "gomobile bind OK ✓"
+          echo "bind OK ✓"
+
+      - name: ذخیرهٔ AAR تازه در کش Release
+        if: steps.aar_cache.outputs.found != '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view core-aar -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create core-aar -R "$GITHUB_REPOSITORY" \
+              --title "Prebuilt Xray Core AAR" --notes "کش هسته"
+          gh release upload core-aar app/libs/libv2ray.aar --clobber -R "$GITHUB_REPOSITORY"
+          echo "در کش ذخیره شد ✓"
 
       - name: اعتبارسنجی AAR
         run: |
@@ -92,12 +118,9 @@ jobs:
           ls -la app/libs/
           rm -rf /tmp/aarv && mkdir -p /tmp/aarv
           unzip -o -q app/libs/libv2ray.aar classes.jar -d /tmp/aarv
-          echo "==== کلاس‌های داخل AAR ===="
+          echo "==== کلاس‌ها ===="
           unzip -l /tmp/aarv/classes.jar | grep -i -E "gozar|V2RayPoint" | head -20 || true
-          if ! unzip -l /tmp/aarv/classes.jar | grep -qi "V2RayPoint"; then
-            echo "FATAL: V2RayPoint در AAR نیست"
-            exit 1
-          fi
+          unzip -l /tmp/aarv/classes.jar | grep -qi "V2RayPoint" || { echo "FATAL: V2RayPoint نیست"; exit 1; }
           echo "AAR OK ✓"
 
       - name: دانلود فایل‌های geo (مسیریابی ایران)
@@ -216,11 +239,9 @@ jobs:
         run: |
           mkdir -p faillog || true
           shopt -s nullglob
-          for f in core-src/gomobile.log core-src/go-tidy.log core-src/go.mod core-src/go.sum build.log; do
+          for f in core-src/gomobile.log core-src/go-tidy.log build.log; do
             if [ -f "$f" ]; then
-              echo "════ انتهای $f ════"
-              tail -60 "$f" || true
-              cp "$f" faillog/ || true
+              echo "════ انتهای $f ════"; tail -60 "$f" || true; cp "$f" faillog/ || true
             fi
           done
           grep -n -i -E "error|cannot find|undefined|CMake Error|FAILURE:" faillog/* 2>/dev/null | head -80 || true
