@@ -20,20 +20,17 @@
   #bg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5}
   html.no-icons i[data-lucide]{display:none!important}
   .page{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 62px) 12px calc(150px + env(safe-area-inset-bottom))}
-
   .topbar{position:fixed;top:0;left:0;right:0;z-index:60;background:rgba(17,24,20,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:2px;padding:calc(env(safe-area-inset-top) + 6px) 8px 6px}
   .tb-btn{width:42px;height:42px;border:none;background:transparent;color:var(--txt);border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
   .tb-btn:hover{background:rgba(255,255,255,.06)}.tb-btn:active{transform:scale(.94)}
   .tb-btn svg{width:21px;height:21px}
   .tb-title{flex:1;min-width:0;font-size:16.5px;font-weight:800;margin:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
   .tb-title small{display:block;font-size:10px;font-weight:600;color:var(--faint);margin-top:-4px}
-
   .tabs{display:flex;gap:4px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   .tabs::-webkit-scrollbar{display:none}
   .tabbtn{flex-shrink:0;border:1px solid var(--line);background:transparent;color:var(--sub);border-radius:99px;padding:5px 15px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;transition:.15s}
   .tabbtn.on{background:var(--acc-dark);border-color:var(--acc);color:var(--acc)}
   .tabbtn b{font-family:var(--mono);font-size:10px;opacity:.75;font-weight:600;margin-right:5px}
-
   .conncard{background:var(--panel);border:1px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden}
   .conncard.on{border-color:#1a5c45}
   .conn-head{display:flex;align-items:center;gap:12px;padding:11px 13px;cursor:pointer;-webkit-user-select:none;user-select:none}
@@ -82,7 +79,6 @@
   .cp-actions .btn{padding:6px 11px;font-size:11.5px}
   .hint{display:flex;align-items:flex-start;gap:7px;text-align:right;font-size:11px;color:var(--faint);margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
   .hint svg{width:13px;height:13px;flex-shrink:0;margin-top:3px}
-
   .cfg-list{display:flex;flex-direction:column}
   .cfg{display:flex;align-items:stretch;gap:8px;border-bottom:1px solid var(--line);padding:11px 4px;cursor:pointer;position:relative;transition:background .15s}
   .cfg:active{background:rgba(255,255,255,.03)}
@@ -113,7 +109,6 @@
   .btn.danger{color:var(--err)}
   .btn svg{width:14px;height:14px;flex-shrink:0}
   .btn[disabled]{opacity:.5;pointer-events:none}
-
   .bottombar{position:fixed;bottom:0;left:0;right:0;z-index:55;pointer-events:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 16px calc(env(safe-area-inset-bottom) + 14px)}
   .fab{pointer-events:auto;width:66px;height:66px;border-radius:50%;background:#232e28;border:1px solid var(--line2);color:var(--txt);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 26px rgba(0,0,0,.45);transition:.2s}
   .fab:active{transform:scale(.94)}
@@ -126,7 +121,6 @@
   .status-chip.on{color:var(--acc)}.status-chip.on .dot{background:var(--acc)}
   .status-chip.busy{color:var(--warn)}.status-chip.busy .dot{background:var(--warn)}
   .status-chip.err{color:var(--err)}.status-chip.err .dot{background:var(--err)}
-
   .pop{position:fixed;z-index:80;background:#161f1a;border:1px solid var(--line2);border-radius:14px;min-width:265px;max-width:calc(100vw - 20px);max-height:72vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.55);display:none;padding:6px;overscroll-behavior:contain}
   .pop.open{display:block;animation:popin .14s}
   @keyframes popin{from{opacity:0;transform:translateY(-6px) scale(.98)}}
@@ -138,7 +132,6 @@
   .pop-item.danger,.pop-item.danger svg{color:var(--err)}
   .pop-sep{height:1px;background:var(--line);margin:6px 8px}
   .pop-title{font-size:10.5px;font-weight:800;color:var(--faint);padding:8px 12px 4px}
-
   .scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:74;display:none}
   .scrim.open{display:block}
   .drawer{position:fixed;top:0;bottom:0;right:0;width:min(330px,88vw);z-index:75;background:#121b16;border-left:1px solid var(--line);transform:translateX(105%);transition:transform .26s cubic-bezier(.3,.8,.3,1);display:flex;flex-direction:column;overflow-y:auto;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);overscroll-behavior:contain}
@@ -160,7 +153,6 @@
   .lang-row .tabbtn{flex:1;text-align:center}
   .dr-foot{margin-top:auto;padding:14px 20px;font-size:10.5px;color:var(--faint);border-top:1px solid var(--line);line-height:1.9}
   .dr-foot b{color:var(--acc)}
-
   .sheet{position:fixed;left:0;right:0;bottom:0;z-index:82;background:var(--panel);border-top:1px solid var(--line2);border-radius:20px 20px 0 0;transform:translateY(105%);transition:transform .26s cubic-bezier(.3,.8,.3,1);max-height:84vh;display:flex;flex-direction:column;padding-bottom:calc(env(safe-area-inset-bottom) + 10px)}
   .sheet.open{transform:none}
   .sh-handle{width:42px;height:4px;border-radius:4px;background:var(--line2);margin:10px auto 2px;flex-shrink:0}
@@ -173,7 +165,6 @@
   .sh-btn:active{transform:scale(.96)}
   .sh-btn svg{width:20px;height:20px;color:var(--acc)}
   .sh-btn.danger svg{color:var(--err)}
-
   .overlay{position:fixed;inset:0;background:rgba(4,8,6,.74);z-index:85;display:none;align-items:center;justify-content:center;padding:16px}
   .overlay.open{display:flex}
   .modal{background:var(--panel);border:1px solid var(--line2);border-radius:18px;width:100%;max-width:520px;max-height:calc(100dvh - 28px);display:flex;flex-direction:column;animation:mup .2s}
@@ -182,8 +173,8 @@
   .m-head h4{font-size:14.5px;font-weight:800}
   .m-body{padding:16px 18px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0;overscroll-behavior:contain;touch-action:pan-y;scroll-behavior:smooth}
   .m-foot{padding:11px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;flex-shrink:0}
-  .tabs-v{display:flex;gap:5px;margin-bottom:14px;background:var(--inset);border-radius:11px;padding:4px;border:1px solid var(--line)}
-  .tabv{flex:1;border:none;background:transparent;color:var(--sub);font-family:inherit;font-size:12px;font-weight:700;padding:8px 6px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:.15s;touch-action:manipulation;min-height:42px}
+  .tabs-v{display:flex;gap:5px;margin-bottom:14px;background:var(--inset);border-radius:11px;padding:4px;border:1px solid var(--line);flex-wrap:wrap}
+  .tabv{flex:1;border:none;background:transparent;color:var(--sub);font-family:inherit;font-size:12px;font-weight:700;padding:8px 6px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:.15s;touch-action:manipulation;min-height:42px;min-width:88px}
   .tabv.on{background:var(--acc);color:#06130d}
   .tpane{display:none}.tpane.on{display:block}
   input,textarea,select{background:var(--inset);border:1px solid var(--line);border-radius:10px;color:var(--txt);font-family:inherit;font-size:13px;padding:9px 12px;width:100%;outline:none}
@@ -201,7 +192,6 @@
   .fmt-row{display:flex;gap:8px;align-items:center;margin:12px 0 8px}
   .fmt-row select{flex:1}
   .outbox{width:100%;min-height:140px;font-family:var(--mono);font-size:10.5px;direction:ltr;background:var(--inset)}
-
   .sgroup{border:1px solid var(--line);border-radius:13px;padding:4px 14px 6px;margin-top:12px}
   .sgroup>.sg-title{font-size:10.5px;font-weight:800;color:var(--faint);padding:9px 0 2px}
   .srow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
@@ -210,7 +200,7 @@
   .srow .st b{font-size:12.5px;font-weight:700;display:block}
   .srow .st small{font-size:10.5px;color:var(--faint);line-height:1.6;display:block;margin-top:1px}
   .srow>select,.srow>input{width:145px;flex-shrink:0;padding:6px 9px;font-size:12px}
-  .srow>input.num{width:70px;text-align:center;direction:ltr}
+  .srow>input.num{width:76px;text-align:center;direction:ltr}
   .srow>.btn{flex-shrink:0;padding:6px 11px;font-size:12px}
   .sw{position:relative;width:40px;height:22px;flex-shrink:0}
   .sw input{display:none}
@@ -223,7 +213,6 @@
   .ff-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
   .ff-grid label{font-size:10px;color:var(--faint);display:block;margin-bottom:3px}
   .ff-grid input,.ff-grid select{padding:6px 8px;font-size:11px;font-family:var(--mono);direction:ltr}
-
   .sec-top{display:flex;align-items:center;gap:16px;margin-bottom:13px}
   .sec-donut{position:relative;width:96px;height:96px;flex-shrink:0}
   .sec-donut svg{width:100%;height:100%;transform:rotate(-90deg)}
@@ -245,7 +234,6 @@
   .sec-item.good{color:#bdeedd}.sec-item.good svg{color:var(--acc)}
   .sec-item.bad{color:#f3c1bd}.sec-item.bad svg{color:var(--err)}
   .sec-item.warn{color:#f0d9b4}.sec-item.warn svg{color:var(--warn)}
-
   .smart-sum{font-size:12px;color:var(--sub);margin-bottom:7px}
   .sm-bar{height:5px;background:var(--inset);border-radius:5px;overflow:hidden;margin-bottom:10px}
   .sm-bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .4s}
@@ -256,7 +244,6 @@
   .sm-row .pv{font-family:var(--mono);font-size:10.5px;color:var(--sub);direction:ltr;flex-shrink:0}
   .sm-row .sc{font-family:var(--mono);font-size:10.5px;color:var(--acc);direction:ltr;flex-shrink:0;width:30px;text-align:left}
   .sm-tag{font-size:9px;background:var(--acc);color:#06130d;border-radius:5px;padding:1px 6px;font-weight:800;flex-shrink:0}
-
   .src-row{display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid var(--line)}
   .src-row:last-child{border-bottom:none}
   .src-ic{width:36px;height:36px;border-radius:10px;background:var(--acc-dark);color:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -265,7 +252,6 @@
   .src-main b{font-size:12.5px;display:block}
   .src-main small{font-size:10.5px;color:var(--faint);display:block;line-height:1.5}
   .src-row .btn{padding:5px 11px;font-size:11.5px;flex-shrink:0}
-
   .subcard{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:10px}
   .subhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
   .subhead b{font-size:13.5px;font-weight:800}
@@ -278,25 +264,20 @@
   .subacts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
   .subacts .btn{padding:5px 10px;font-size:11px}
   .qnoinfo{font-size:11.5px;color:var(--faint)}
-
   #scanVideo{width:100%;max-width:340px;border-radius:14px;background:#000;display:block;margin:0 auto}
   #scanCanvas{display:none}
   .scan-hint{text-align:center;font-size:12px;color:var(--sub);margin-top:10px}
-
   #toasts{position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));left:16px;z-index:99;display:flex;flex-direction:column;gap:7px;max-width:calc(100vw - 32px)}
   .toast{background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:10px 15px;font-size:12.5px;display:flex;align-items:center;gap:8px;animation:tin .22s;box-shadow:0 8px 30px rgba(0,0,0,.4)}
   .toast svg{width:15px;height:15px;color:var(--acc)}
   .toast.warn svg{color:var(--warn)}.toast.err svg{color:var(--err)}
   @keyframes tin{from{transform:translateY(8px);opacity:0}}
   .toast.out{transition:.3s;opacity:0;transform:translateY(6px)}
-
   #dnd{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;background:rgba(6,12,9,.85)}
   #dnd.show{display:flex}
   #dnd .box{border:2px dashed var(--acc);border-radius:18px;padding:32px 40px;color:var(--acc);font-weight:800}
-
   ::-webkit-scrollbar{width:8px;height:8px}
   ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px}
-
   [dir="ltr"] .cfg.active::before{right:auto;left:-12px}
   [dir="ltr"] .metric{border-left:none;border-right:1px solid var(--line)}
   [dir="ltr"] .metric:first-child{border-right:none}
@@ -379,11 +360,11 @@
   <div class="dr-item" id="drGroup"><i data-lucide="layers"></i><div class="dr-txt"><b data-i18n="d_group"></b><small data-i18n="d_group_s"></small></div></div>
   <div class="dr-item" id="drRouting"><i data-lucide="map"></i><div class="dr-txt"><b data-i18n="d_routing"></b><small data-i18n="d_routing_s"></small></div></div>
   <div class="dr-item" id="drDpi"><i data-lucide="sliders-horizontal"></i><div class="dr-txt"><b data-i18n="d_dpi"></b><small data-i18n="d_dpi_s"></small></div></div>
+  <div class="dr-item" id="drRules2"><i data-lucide="git-branch"></i><div class="dr-txt"><b data-i18n="st_g5"></b><small data-i18n="st_g5_s"></small></div></div>
   <div class="dr-item" id="drGeo"><i data-lucide="file-plus"></i><div class="dr-txt"><b data-i18n="d_geo"></b><small data-i18n="d_geo_s"></small></div></div>
   <div class="dr-item" id="drSettings"><i data-lucide="settings"></i><div class="dr-txt"><b data-i18n="d_set"></b><small data-i18n="d_set_s"></small></div></div>
   <div class="dr-sep"></div>
   <div class="dr-item" id="drLogs"><i data-lucide="terminal"></i><div class="dr-txt"><b data-i18n="d_logs"></b><small data-i18n="d_logs_s"></small></div></div>
-  <!-- ═══ گام ۹-الف: آیتم جدید لاگ هسته ═══ -->
   <div class="dr-item" id="drCoreLog"><i data-lucide="file-code"></i><div class="dr-txt"><b data-i18n="d_corelog"></b><small data-i18n="d_corelog_s"></small></div></div>
   <div class="dr-item" id="drBackup"><i data-lucide="download"></i><div class="dr-txt"><b data-i18n="d_backup"></b><small data-i18n="d_backup_s"></small></div></div>
   <div class="dr-item" id="drUpdate"><i data-lucide="refresh-cw"></i><div class="dr-txt"><b data-i18n="d_update"></b><small data-i18n="d_update_s"></small></div></div>
@@ -645,13 +626,15 @@
 </div>
 
 <div class="overlay" id="ovSettings">
-  <div class="modal" style="max-width:540px">
+  <div class="modal" style="max-width:560px">
     <div class="m-head"><h4 data-i18n="d_set"></h4><button class="ibtn" data-close><i data-lucide="x"></i></button></div>
     <div class="m-body">
       <div class="tabs-v">
         <button class="tabv on" data-tab="st1" data-i18n="st_g1"></button>
         <button class="tabv" data-tab="st2" data-i18n="st_g2"></button>
         <button class="tabv" data-tab="st3" data-i18n="st_g3"></button>
+        <button class="tabv" data-tab="st4" data-i18n="st_g4"></button>
+        <button class="tabv" data-tab="st5" data-i18n="st_g5"></button>
       </div>
       <div class="tpane on" id="st1">
         <div class="sgroup">
@@ -695,6 +678,8 @@
           </div>
           <div class="srow"><div class="st"><b>Mux</b><small data-i18n="r_mux_s"></small></div>
             <label class="sw"><input type="checkbox" id="r_mux"><i></i></label></div>
+          <div class="srow"><div class="st"><b data-i18n="r_muxconc"></b><small data-i18n="r_muxconc_s"></small></div>
+            <input class="num" id="r_muxconc" type="number" min="1" max="128"></div>
           <div class="srow"><div class="st"><b data-i18n="r_quic"></b><small data-i18n="r_quic_s"></small></div>
             <label class="sw"><input type="checkbox" id="r_quic"><i></i></label></div>
         </div>
@@ -717,10 +702,109 @@
             <select id="a_fmt"><option value="link" data-i18n="fmt_link"></option><option value="xray">Xray</option><option value="singbox">sing-box</option></select></div>
         </div>
       </div>
+      <div class="tpane" id="st4">
+        <div class="sgroup">
+          <div class="sg-title" data-i18n="sg_core"></div>
+          <div class="srow"><div class="st"><b data-i18n="c_sniff"></b><small data-i18n="c_sniff_s"></small></div>
+            <label class="sw"><input type="checkbox" id="c_sniff"><i></i></label></div>
+          <div class="srow"><div class="st"><b data-i18n="c_routeonly"></b><small data-i18n="c_routeonly_s"></small></div>
+            <label class="sw"><input type="checkbox" id="c_routeonly"><i></i></label></div>
+          <div class="srow"><div class="st"><b data-i18n="c_auto"></b><small data-i18n="c_auto_s"></small></div>
+            <label class="sw"><input type="checkbox" id="c_auto"><i></i></label></div>
+          <div class="srow"><div class="st"><b data-i18n="c_loglvl"></b></div>
+            <select id="c_loglvl"><option value="debug">debug</option><option value="info">info</option><option value="warning">warning</option><option value="error">error</option><option value="none">none</option></select></div>
+          <div class="srow"><div class="st"><b data-i18n="c_preres"></b></div>
+            <select id="c_preres"><option value="usePlatformResolvers">usePlatformResolvers</option><option value="useIP">useIP</option><option value="useNonIP">useNonIP</option></select></div>
+          <div class="srow"><div class="st"><b data-i18n="c_testurl"></b></div>
+            <input id="c_testurl" dir="ltr" style="width:190px;padding:6px 9px;font-size:11px"></div>
+          <div class="srow"><div class="st"><b data-i18n="c_sport"></b></div>
+            <input class="num" id="c_sport" type="number" min="1024" max="65535"></div>
+          <div class="srow"><div class="st"><b data-i18n="c_rdns"></b><small data-i18n="c_rproto"></small></div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <input id="c_rdns" dir="ltr" style="width:110px;padding:6px 9px;font-size:12px">
+              <select id="c_rproto" style="width:86px;padding:6px 4px;font-size:11px"><option value="https">https</option><option value="udp">udp</option><option value="tcp">tcp</option><option value="quic">quic</option></select>
+            </div></div>
+          <div class="srow"><div class="st"><b data-i18n="c_ddns"></b></div>
+            <input id="c_ddns" dir="ltr" style="width:145px;padding:6px 9px;font-size:12px"></div>
+          <div style="padding:8px 0 4px">
+            <label class="fld" data-i18n="c_dhost"></label>
+            <textarea id="c_dhost" style="min-height:70px" dir="ltr" placeholder="example.com=1.2.3.4"></textarea>
+            <small style="font-size:10px;color:var(--faint)" data-i18n="c_dhost_s"></small>
+          </div>
+        </div>
+        <div class="sgroup">
+          <div class="sg-title" data-i18n="sg_vpn"></div>
+          <div class="srow"><div class="st"><b data-i18n="v_dns"></b></div>
+            <input id="v_dns" dir="ltr" style="width:145px;padding:6px 9px;font-size:12px"></div>
+          <div class="srow"><div class="st"><b data-i18n="v_mtu"></b></div>
+            <input class="num" id="v_mtu" type="number" min="1280" max="9000"></div>
+          <div class="srow"><div class="st"><b data-i18n="v_ipv6"></b><small data-i18n="v_ipv6_s"></small></div>
+            <label class="sw"><input type="checkbox" id="v_ipv6"><i></i></label></div>
+          <div class="srow"><div class="st"><b data-i18n="v_tun"></b><small data-i18n="v_tun_s"></small></div>
+            <select id="v_tun"><option value="hev">hev-socks5-tunnel</option><option value="aar">AAR loop</option></select></div>
+          <div class="srow"><div class="st"><b data-i18n="v_hlvl"></b></div>
+            <select id="v_hlvl"><option value="warn">warn</option><option value="info">info</option><option value="error">error</option><option value="debug">debug</option></select></div>
+          <div class="srow"><div class="st"><b data-i18n="v_hto"></b><small data-i18n="v_hto_s"></small></div>
+            <input id="v_hto" dir="ltr" style="width:100px;padding:6px 9px;font-size:12px" placeholder="300,60"></div>
+        </div>
+        <div class="sgroup">
+          <div class="sg-title" data-i18n="sg_apps"></div>
+          <div class="srow"><div class="st"><b data-i18n="apps_mode"></b><small data-i18n="apps_hint"></small></div>
+            <select id="apps_mode"><option value="none" data-i18n="apps_none"></option><option value="allow" data-i18n="apps_allow"></option><option value="disallow" data-i18n="apps_disallow"></option></select></div>
+          <div class="srow"><div class="st"><b data-i18n="apps_pick"></b></div>
+            <button class="btn" id="btnAppsPick"><i data-lucide="list"></i><span data-i18n="apps_open"></span></button></div>
+        </div>
+      </div>
+      <div class="tpane" id="st5">
+        <div class="sgroup">
+          <div class="sg-title" data-i18n="ru_preset"></div>
+          <div class="srow"><div class="st"><b data-i18n="ru_udp443"></b><small>443 · udp → block</small></div>
+            <label class="sw"><input type="checkbox" id="ru_udp443"><i></i></label></div>
+          <div class="srow"><div class="st"><b data-i18n="ru_google"></b><small>geosite:google → proxy</small></div>
+            <label class="sw"><input type="checkbox" id="ru_google"><i></i></label></div>
+          <div class="srow"><div class="st"><b data-i18n="ru_lanip"></b><small>geoip:private → direct</small></div>
+            <label class="sw"><input type="checkbox" id="ru_lanip"><i></i></label></div>
+          <div class="srow"><div class="st"><b data-i18n="ru_landom"></b><small>geosite:private → direct</small></div>
+            <label class="sw"><input type="checkbox" id="ru_landom"><i></i></label></div>
+          <div class="srow"><div class="st"><b data-i18n="ru_ddns"></b><small data-i18n="ru_ddns_s"></small></div>
+            <label class="sw"><input type="checkbox" id="ru_ddns"><i></i></label></div>
+        </div>
+        <div class="sgroup">
+          <div class="sg-title" data-i18n="ru_custom"></div>
+          <div id="ruleList"></div>
+          <div style="padding:8px 0 4px">
+            <div style="display:grid;grid-template-columns:1fr 90px;gap:6px">
+              <input id="ru_name" data-i18n-ph="ru_name">
+              <input id="ru_port" dir="ltr" placeholder="port" inputmode="numeric">
+              <input id="ru_doms" dir="ltr" placeholder="geosite:google, example.com" style="grid-column:1/-1">
+              <input id="ru_ips" dir="ltr" placeholder="geoip:private, 8.8.8.8" style="grid-column:1/-1">
+              <select id="ru_net"><option value="any">tcp+udp</option><option value="tcp">tcp</option><option value="udp">udp</option></select>
+              <select id="ru_out"><option value="proxy">proxy</option><option value="direct">direct</option><option value="block">block</option></select>
+            </div>
+            <button class="btn primary" id="ruAddBtn" style="margin-top:8px;width:100%;justify-content:center"><i data-lucide="plus"></i><span data-i18n="ru_add"></span></button>
+            <small style="font-size:10px;color:var(--faint);display:block;margin-top:6px" data-i18n="ru_hint"></small>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="m-foot">
       <button class="btn" id="setReset"><i data-lucide="rotate-ccw"></i><span data-i18n="btn_reset"></span></button>
       <button class="btn primary" data-close><i data-lucide="check"></i><span data-i18n="btn_save"></span></button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ovApps">
+  <div class="modal" style="max-width:440px">
+    <div class="m-head"><h4 data-i18n="apps_pick"></h4><button class="ibtn" data-close><i data-lucide="x"></i></button></div>
+    <div class="m-body">
+      <input id="appsQ" data-i18n-ph="apps_search">
+      <div id="appsList" style="max-height:320px;overflow-y:auto;margin-top:10px;display:flex;flex-direction:column;gap:4px"></div>
+      <p style="font-size:10.5px;color:var(--faint);margin-top:8px" id="appsCnt"></p>
+    </div>
+    <div class="m-foot">
+      <button class="btn" data-close><span data-i18n="c_cancel"></span></button>
+      <button class="btn primary" id="appsSave"><i data-lucide="check"></i><span data-i18n="btn_save"></span></button>
     </div>
   </div>
 </div>
@@ -775,19 +859,19 @@ fa:{
  hint_android:'<b>تونل واقعی فعال است</b> — ترافیک کل گوشی از هستهٔ Xray می‌گذرد. دکمهٔ پخش = قطع تونل.',
  empty_none:"هنوز کانفیگی اضافه نشده است.",empty_f:"کانفیگی با این فیلتر/گروه نیست.",b_add:"افزودن",b_free:"سرورهای رایگان",manual:"دستی",
  sc_none:"متصل نیست",sc_busy:"در حال بررسی…",sc_on:"متصل",sc_tun:"تونل فعال",sc_err:"عدم دسترسی",
- d_ver:"پنل هوشمند کانفیگ · نسخهٔ ۲٫۴",
+ d_ver:"پنل هوشمند کانفیگ · نسخهٔ ۲٫۵",
  d_subs2:"اشتراک و حجم باقی‌مانده",d_subs2_s:"نمایش مصرف/باقی‌مانده و روزهای انقضای هر اشتراک",
  d_group:"گروه‌های اشتراک",d_group_s:"دریافت سرورهای رایگان و افزودن منبع دلخواه",
  d_routing:"تنظیمات مسیریابی (ایران)",d_routing_s:"مسیر مستقیم سایت‌های ایرانی، تبلیغات و QUIC",
  d_dpi:"تنظیمات عبور از اختلال",d_dpi_s:"Fragment، Mux و تنظیمات ضد اختلال اپراتور",
  d_geo:"فایل‌های منبع جغرافیایی",d_geo_s:"دربارهٔ فایل‌های geosite/geoip مورد نیاز مسیریابی",
- d_set:"تنظیمات",d_set_s:"DNS، تایم‌اوت‌ها، پشتیبان‌گیری و زبان",
+ d_set:"تنظیمات",d_set_s:"DNS، هسته، VPN، قوانین و برنامه‌ها",
  d_logs:"گزارشات",d_logs_s:"۱۵۰ رویداد آخر برنامه",
- /* ═══ گام ۹-ب: کلیدهای جدید ═══ */
  d_corelog:"لاگ هستهٔ Xray",d_corelog_s:"خروجی داخلی هسته — برای عیب‌یابی تونل",
  d_backup:"پشتیبان‌گیری / بازیابی",d_backup_s:"انتقال کانفیگ‌ها بین اندروید و کامپیوتر",
  d_update:"بروزرسانی همهٔ گروه‌ها",d_update_s:"دریافت تازه از همهٔ منابع اشتراک",
  d_about:"درباره",d_about_s:"نسخه، سازنده و توضیحات برنامه",d_lang:"زبان",
+ st_g5_s:"قوانین آماده و سفارشی مسیریابی",
  dr_foot:'تحلیل و خروجی‌ها همگی محلی‌اند.<br><span>برنامه‌نویسی‌شده توسط</span> <b>محمد حسین زاده</b>',
  p_restart:"راه‌اندازی مجدد خدمات",p_deldup:"حذف کانفیگ‌های تکراری گروه فعلی",p_delinv:"حذف کانفیگ‌های نامعتبر گروه فعلی",p_delall:"حذف تمام کانفیگ‌های گروه فعلی",p_export:"خروجی گرفتن کانفیگ‌های گروه فعلی",p_smart:"انتخاب هوشمند برای گروه فعال",p_tcping:"تست سریع (TCPing) گروه فعلی",p_real:"تأخیر واقعی گروه فعلی",p_sort:"مرتب‌سازی بر اساس نتایج آزمایش",p_upd:"بروزرسانی گروه فعلی اشتراک",
  pa_imp:"وارد کردن کانفیگ",pa_qr:"کانفیگ را از QRcode وارد کنید",pa_clip:"کانفیگ را از کلیپ‌بورد وارد کنید",pa_file:"کانفیگ را از فایل محلی وارد کنید",pa_link:"وارد کردن لینک / اشتراک",pa_man:"تایپ دستی",
@@ -801,33 +885,28 @@ fa:{
  src_t:"گروه‌های اشتراک (سرورهای رایگان)",src_c:"افزودن منبع دلخواه",src_get:"دریافت",src_note:"هر منبع حداکثر ۱۵۰ کانفیگ تصادفی اضافه می‌کند؛ تکراری‌ها حذف می‌شوند. کانفیگ‌های عمومی ممکن است ترافیک را ثبت کنند.",
  geo_t:"فایل‌های منبع جغرافیایی",geo_p1:"مسیریابی «سایت‌های ایرانی» در خروجی Xray به داده‌های geosite/geoip تکیه دارد.",geo_p2:"منبع رسمی: مخازن v2fly در گیت‌هاب. در Hiddify و v2rayNG این فایل‌ها از قبل تعبیه شده‌اند.",
  about_d:"پنل هوشمند مدیریت کانفیگ با تحلیل امنیتی محلی، ۶ پروتکل، بهینه‌سازی ایران و هستهٔ Xray در اپ اندروید.",
- st_g1:"عمومی",st_g2:"مسیریابی ایران",st_g3:"پیشرفته",
- sg_net:"شبکه و بررسی",sg_ui:"رابط کاربری",sg_bk:"انتقال بین دستگاه‌ها",sg_dpi:"عبور از اختلال (DPI)",sg_rt:"مسیریابی",sg_adv:"پیش‌فرض‌های TLS و خروجی",
- s_dns:"سرور DNS",s_dns_s:"در خروجی JSON تونل اعمال می‌شود — شکن برای تحریم DNS داخل ایران",
- s_ping:"فاصلهٔ پایش پینگ",s_ping_s:"هر چند ثانیه وضعیت سرور فعال دوباره سنجیده شود",
- s_to:"تایم‌اوت تست",s_to_s:"مدت انتظار برای پاسخ سرور در تست اتصال",
- s_mon:"پایش خودکار پس از اتصال",s_mon_s:"پینگ زنده و هشدار در صورت قطع شدن سرور",
- s_bg:"انیمیشن پس‌زمینه",s_bg_s:"برای گوشی‌های ضعیف می‌توانید خاموش کنید",
+ st_g1:"عمومی",st_g2:"مسیریابی ایران",st_g3:"پیشرفته",st_g4:"هسته و VPN",st_g5:"قوانین و برنامه‌ها",
+ sg_net:"شبکه و بررسی",sg_ui:"رابط کاربری",sg_bk:"انتقال بین دستگاه‌ها",sg_dpi:"عبور از اختلال (DPI)",sg_rt:"مسیریابی",sg_adv:"پیش‌فرض‌های TLS و خروجی",sg_core:"هستهٔ Xray",sg_vpn:"تنظیمات VPN",sg_apps:"پروکسی هر برنامه",
+ s_dns:"سرور DNS",s_dns_s:"در خروجی JSON تونل اعمال می‌شود",s_ping:"فاصلهٔ پایش پینگ",s_ping_s:"هر چند ثانیه وضعیت سرور فعال دوباره سنجیده شود",s_to:"تایم‌اوت تست",s_to_s:"مدت انتظار برای پاسخ سرور",s_mon:"پایش خودکار پس از اتصال",s_mon_s:"پینگ زنده و هشدار قطعی",s_bg:"انیمیشن پس‌زمینه",s_bg_s:"برای گوشی‌های ضعیف قابل خاموشی",
  bk_exp:"خروجی پشتیبان (JSON)",bk_exp_s:"فایل پشتیبان از همهٔ کانفیگ‌ها",bk_copy:"کپی همهٔ لینک‌ها",bk_copy_s:"برای پیست در دستگاه دیگر",bk_imp:"بازیابی از فایل",bk_imp_s:"JSON یا فهرست لینک — تکراری‌ها حذف می‌شوند",bk_get:"خروجی",bk_cp:"کپی همه",bk_up:"بازیابی",
- r_frag:"Fragment بسته‌های TLS",r_frag_s:"تکه‌تکه‌کردن Client Hello برای عبور از DPI — مؤثرترین گزینه در ایران (فقط خروجی Xray)",
- r_mux_s:"چند اتصال روی یک تونل — در برخی اپراتورها اختلال را کم می‌کند",
- r_quic:"مسدودسازی QUIC",r_quic_s:"اجبار ترافیک به TCP؛ QUIC در برخی شبکه‌های ایران ناپایدار است",
- r_dir:"مستقیم‌کردن سایت‌های ایرانی",r_dir_s:"geosite:category-ir و دامنه‌های .ir بدون فیلترشکن — سرعت داخلی حفظ می‌شود",
- r_ads:"مسدودسازی تبلیغات",r_ads_s:"دامنه‌های تبلیغاتی (category-ads-all) مسدود می‌شوند",
- a_fp:"اثر انگشت uTLS",a_fp_s:"برای کانفیگ‌هایی که fingerprint ندارند اعمال می‌شود",
- a_alpn_s:"مثلاً h2,http/1.1 — خالی یعنی پیش‌فرض",
- a_fmt:"قالب خروجی پیش‌فرض",a_fmt_s:"قالب پیش‌فرض خروجی در صفحهٔ «جزئیات»",
+ r_frag:"Fragment بسته‌های TLS",r_frag_s:"ضد DPI — مؤثرترین گزینه در ایران (فقط خروجی Xray)",r_mux_s:"چند اتصال روی یک تونل",r_muxconc:"تعداد اتصال Mux",r_muxconc_s:"حداکثر اتصال‌های موازی روی تونل",r_quic:"مسدودسازی QUIC",r_quic_s:"اجبار ترافیک به TCP",r_dir:"مستقیم‌کردن سایت‌های ایرانی",r_dir_s:"geosite:category-ir و .ir بدون فیلترشکن",r_ads:"مسدودسازی تبلیغات",r_ads_s:"دامنه‌های تبلیغاتی مسدود می‌شوند",
+ a_fp:"اثر انگشت uTLS",a_fp_s:"برای کانفیگ‌های بدون fingerprint",a_alpn_s:"خالی یعنی پیش‌فرض",a_fmt:"قالب خروجی پیش‌فرض",a_fmt_s:"قالب پیش‌فرض در «جزئیات»",
+ c_sniff:"فعال‌کردن Sniffing",c_sniff_s:"تشخیص نام دامنه از ترافیک — برای مسیریابی درست (توصیه می‌شود)",c_routeonly:"فقط مسیریابی (RouteOnly)",c_routeonly_s:"نام Sniff شده فقط برای مسیریابی، نه مقصد واقعی",c_auto:"اتصال خودکار هنگام باز شدن",c_auto_s:"آخرین کانفیگ فعال خودکار وصل شود",c_loglvl:"سطح لاگ هسته",c_preres:"روش پیش‌حل آدرس خروجی",c_testurl:"آدرس تست تأخیر",c_sport:"پورت SOCKS محلی",c_rdns:"DNS دور (اختیاری)",c_rproto:"پروتکل",c_ddns:"DNS داخلی",c_dhost:"مستقیم‌هاست DNS (دامنه=IP)",c_dhost_s:"هر خط: example.com=1.2.3.4",
+ v_dns:"DNS تونل VPN (IPv4)",v_mtu:"MTU تونل (پیش‌فرض 1500)",v_ipv6:"ترجیح IPv6",v_ipv6_s:"مسیرهای IPv6 هم به تونل اضافه شود",v_tun:"موتور TUN",v_tun_s:"hev-socks5-tunnel یا پل داخلی AAR",v_hlvl:"سطح لاگ Hev",v_hto:"زمان خواب/تایم‌اوت Hev (ثانیه)",v_hto_s:"tcp,udp — پیش‌فرض 300,60",
+ apps_mode:"حالت پروکسی هر برنامه",apps_hint:"فقط برنامه‌های انتخابی از تونل استفاده کنند یا همه به‌جز آن‌ها",apps_none:"غیرفعال (همه)",apps_allow:"فقط این‌ها",apps_disallow:"همه به‌جز این‌ها",apps_pick:"انتخاب برنامه‌ها",apps_open:"بازکردن فهرست",apps_search:"جستجوی برنامه…",apps_empty:"برنامه‌ای یافت نشد",apps_cnt:"{n} برنامه",
+ ru_preset:"قوانین آماده",ru_udp443:"مسدودکردن udp443",ru_google:"پروکسی Google",ru_lanip:"دورزدن IP شبکه محلی",ru_landom:"دورزدن دامنه‌های محلی",ru_ddns:"دورزدن DNS داخلی",ru_ddns_s:"سرورهای DNS داخلی مستقیم (فیلتر DNS)",ru_custom:"قوانین سفارشی",ru_add:"افزودن قانون",ru_name:"نام قانون",ru_hint:"قوانین سفارشی بعد از قوانین آماده اعمال می‌شوند",
  btn_reset:"بازنشانی",btn_save:"ذخیره",
- g_t:"راهنمای اتصال",g_p1:"در اپ اندروید (APK با هستهٔ Xray): انتخاب کانفیگ → دکمهٔ پخش → تونل واقعی روی کل ترافیک.",g_p2:"در مرورگر: حلقه فقط دستیابی سرور را می‌سنجد. برای تونل واقعی، لینک/QR را در Hiddify یا v2rayNG وارد کنید یا JSON کامل Xray را از «جزئیات» بردارید.",g_warn:"توصیهٔ امنیتی:",g_warn_p:"برای استفادهٔ جدی، سرور شخصی بهترین گزینه است. اگر اختلال دارید، Fragment و «مستقیم‌کردن سایت‌های ایرانی» را فعال کنید.",
+ g_t:"راهنمای اتصال",g_p1:"در اپ اندروید: انتخاب کانفیگ → دکمهٔ پخش → تونل واقعی روی کل ترافیک.",g_p2:"در مرورگر: حلقه فقط دستیابی سرور را می‌سنجد. برای تونل واقعی، لینک/QR را در Hiddify یا v2rayNG وارد کنید.",g_warn:"توصیهٔ امنیتی:",g_warn_p:"برای استفادهٔ جدی، سرور شخصی بهترین گزینه است. اگر اختلال دارید، Fragment و «مستقیم‌کردن سایت‌های ایرانی» را فعال کنید.",
  c_cancel:"انصراف",c_ok:"انجام بده",c_close:"بستن",c_t:"تایید",r_t:"تغییر نام",
  sc_t:"اسکن QR کانفیگ",sc_h:"QR کانفیگ را مقابل دوربین بگیرید…",dnd_t:"فایل را رها کنید تا کانفیگ‌ها اضافه شوند",
- sub_t:"اشتراک و حجم باقی‌مانده",sub_add_t:"افزودن اشتراک خریداری‌شده",sub_nm:"نام گروه",sub_url:"لینک اشتراک (URL)",sub_add:"افزودن و دریافت",sub_used:"مصرف‌شده",sub_left:"باقی‌مانده",sub_exp:"انقضا",sub_days:"{n} روز",sub_expd:"منقضی",sub_unk:"نامشخص",sub_upd:"بروزرسانی",sub_edit:"ویرایش دستی",sub_del:"حذف گروه",sub_et:"ویرایش دستی حجم / انقضا",sub_tgb:"حجم کل (GB)",sub_dt:"تاریخ انقضا",sub_save:"ذخیره",sub_buy:"خرید اشتراک:",sub_buy_p:"این برنامه اشتراک نمی‌فروشد. اشتراک را از سرویس‌دهندهٔ معتبر بخرید و «لینک اشتراک» آن را اینجا وارد کنید؛ حجم مصرفی و تاریخ انقضا به‌طور خودکار از سرور خوانده می‌شود (در صورت پشتیبانی) یا با «ویرایش دستی» وارد کنید.",sub_noinfo:"اطلاعات حجمی از سرور دریافت نشد — با «ویرایش دستی» وارد کنید.",sub_none:"هنوز گروه اشتراکی نیست — از «سرورهای رایگان» دریافت کنید یا اشتراک خودتان را اضافه کنید.",
+ sub_t:"اشتراک و حجم باقی‌مانده",sub_add_t:"افزودن اشتراک خریداری‌شده",sub_nm:"نام گروه",sub_url:"لینک اشتراک (URL)",sub_add:"افزودن و دریافت",sub_used:"مصرف‌شده",sub_left:"باقی‌مانده",sub_exp:"انقضا",sub_days:"{n} روز",sub_expd:"منقضی",sub_unk:"نامشخص",sub_upd:"بروزرسانی",sub_edit:"ویرایش دستی",sub_del:"حذف گروه",sub_et:"ویرایش دستی حجم / انقضا",sub_tgb:"حجم کل (GB)",sub_dt:"تاریخ انقضا",sub_save:"ذخیره",sub_buy:"خرید اشتراک:",sub_buy_p:"این برنامه اشتراک نمی‌فروشد. اشتراک را از سرویس‌دهندهٔ معتبر بخرید و «لینک اشتراک» آن را اینجا وارد کنید؛ حجم و انقضا خودکار (در صورت پشتیبانی) یا با «ویرایش دستی» وارد می‌شود.",sub_noinfo:"اطلاعات حجمی از سرور دریافت نشد — با «ویرایش دستی» وارد کنید.",sub_none:"هنوز گروه اشتراکی نیست — از «سرورهای رایگان» دریافت کنید یا اشتراک خودتان را اضافه کنید.",
  m_added:"{n} کانفیگ افزوده شد",m_empty:"چیزی وارد نشده",m_nf:"کانفیگ قابل شناسایی پیدا نشد",m_nf_in:"کانفیگ قابل شناسایی در «{x}» پیدا نشد",m_fail:"دریافت ناموفق بود",m_req:"آدرس، پورت و شناسه الزامی است",m_mkfail:"ساخت کانفیگ ناموفق بود",m_pick:"ابتدا یک کانفیگ را انتخاب کنید (لمس ردیف)",m_testing:"در حال تست {x}…",m_pok:"پینگ: {n}ms",m_pfail:"سرور پاسخگو نبود",m_del:"کانفیگ حذف شد",m_copied:"در کلیپ‌بورد کپی شد",m_copn:"{n} لینک کپی شد",m_share_f:"لینک کپی شد (اشتراک سیستمی در دسترس نیست)",
  m_cdel:"کانفیگ «{x}» حذف شود؟",m_cdelall:"تمام {n} کانفیگ گروه فعلی حذف شود؟ بازگشت‌پذیر نیست.",m_cdinv:"{n} کانفیگِ نامعتبر از گروه فعلی حذف شود؟",m_noinv:"کانفیگ نامعتبری در این گروه نیست",m_invdel:"{n} کانفیگ نامعتبر حذف شد",m_gempty:"این گروه خالی است",m_gclear:"گروه فعلی خالی شد",m_dup:"{n} کانفیگ تکراری حذف شد",m_noexp:"چیزی برای خروجی نیست",
  m_gtest:"تست سریع {n} کانفیگ…",m_grtest:"تست تأخیر واقعی {n} کانفیگ…",m_gdone:"تست کامل شد — {a} از {b} پاسخگو",m_sorted:"مرتب‌سازی انجام شد",m_pickg:"ابتدا یک گروه اشتراک را از تب‌ها انتخاب کنید",m_nosrc:"این گروه منبع شناخته‌شده‌ای ندارد",m_fetch:"دریافت گروه «{x}»…",m_nonew:"کانفیگ جدیدی در «{x}» نبود",m_srcfail:"دریافت «{x}» ناموفق بود",m_upall:"بروزرسانی همهٔ گروه‌ها…",
  m_rest:"در حال راه‌اندازی مجدد…",m_rester:"خطا در راه‌اندازی مجدد",m_restbr:"راه‌اندازی مجدد فقط در اپ اندروید معنا دارد",m_clipe:"کلیپ‌بورد خالی است",m_clipd:"دسترسی به کلیپ‌بورد نشد — لینک را در کادر پیست کنید",m_cam:"دوربین در این مرورگر در دسترس نیست",m_jsqr:"کتابخانهٔ اسکنر بارگیری نشده",m_camd:"دسترسی به دوربین داده نشد",m_qrbad:"QR شامل کانفیگ معتبر نبود",m_qrlib:"کتابخانهٔ QR بارگیری نشده",m_qrfail:"ساخت QR ناموفق بود",m_rfail:"بازیابی ناموفق: {x}",m_nonewf:"مورد جدیدی در فایل نبود",m_ufmt:"ساختار فایل شناخته نشد",m_reset:"تنظیمات بازنشانی شد",
  m_sb:"این پروتکل نیازمند هستهٔ sing-box است",m_ask:"مجوز VPN را تایید کنید",m_verr:"خطا در شروع تونل",m_von:"تونل فعال شد",m_cap:"سقف ۴۰۰ کانفیگ",m_read:"خواندن فایل ممکن نشد",
  m_subadd:"اشتراک «{x}» افزوده شد",m_subsave:"اطلاعات اشتراک ذخیره شد",m_subdel:"گروه اشتراک حذف شد",m_subneed:"نام و لینک را وارد کنید",m_cdelg:"گروه «{x}» و همهٔ {n} کانفیگ آن حذف شود؟",
+ m_ruleadd:"قانون اضافه شد",m_ruledel:"قانون حذف شد",m_ruledup:"قانون تکراری یا خالی",m_appsload:"در حال دریافت فهرست برنامه‌ها…",
  log_ready:"گذر {v} آماده است — محیط: {e}",log_bk:"پشتیبان با {n} کانفیگ دانلود شد.",
  env_mob:"مرورگر موبایل",env_desk:"دسکتاپ",env_pwa:"اپ نصب‌شده (PWA)",env_app:"اپ اندروید · تونل"
 },
@@ -837,65 +916,48 @@ ar:{
  ring_conn:"اتصال",ring_disc:"قطع الاتصال",ring_chk:"جارٍ الفحص",ring_hint:"اضغط للفحص",ring_retry:"اضغط لإعادة المحاولة",
  m_ping:"الزمن",m_status:"الحالة",m_sec:"الأمان",m_proto:"البروتوكول",st_ok:"متاح",st_down:"منقطع",
  a_test:"فحص سريع",a_sec:"تحليل أمني",a_detail:"التفاصيل",a_copy:"نسخ",
- hint_browser:'الحلقة تقيس <b>فعلياً</b> إمكانية الوصول للخادم. أدخل المخرجات في Hiddify / v2rayNG.',
- hint_android:'<b>النفق الحقيقي نشط</b> — كل حركة الجهاز تمر عبر نواة Xray. زر التشغيل = قطع النفق.',
- empty_none:"لم تتم إضافة أي إعداد بعد.",empty_f:"لا إعدادات بهذا الفلتر/المجموعة.",b_add:"إضافة",b_free:"خوادم مجانية",manual:"يدوي",
+ hint_browser:'الحلقة تقيس إمكانية الوصول فعلياً. أدخل المخرجات في Hiddify / v2rayNG.',
+ hint_android:'<b>النفق الحقيقي نشط</b> — كل حركة الجهاز عبر نواة Xray. زر التشغيل = قطع.',
+ empty_none:"لا إعدادات بعد.",empty_f:"لا نتائج.",b_add:"إضافة",b_free:"خوادم مجانية",manual:"يدوي",
  sc_none:"غير متصل",sc_busy:"جارٍ الفحص…",sc_on:"متصل",sc_tun:"النفق نشط",sc_err:"لا يمكن الوصول",
- d_ver:"لوحة إعدادات ذكية · الإصدار ٢٫٤",
- d_subs2:"الاشتراك والحجم المتبقي",d_subs2_s:"عرض الاستهلاك/المتبقي وأيام انتهاء كل اشتراك",
- d_group:"مجموعات الاشتراك",d_group_s:"جلب الخوادم المجانية وإضافة مصدر مخصص",
- d_routing:"إعدادات التوجيه (إيران)",d_routing_s:"المواقع الإيرانية مباشرة، الإعلانات و QUIC",
- d_dpi:"إعدادات تجاوز التشويش",d_dpi_s:"Fragment و Mux وإعدادات مضادة للتشويش",
- d_geo:"ملفات المصادر الجغرافية",d_geo_s:"حول ملفات geosite/geoip اللازمة للتوجيه",
- d_set:"الإعدادات",d_set_s:"DNS والمهل والنسخ الاحتياطي واللغة",
- d_logs:"السجلات",d_logs_s:"آخر ١٥٠ حدثاً في التطبيق",
- /* ═══ گام ۹-ب ═══ */
- d_corelog:"سجل النواة",d_corelog_s:"مخرجات النواة الداخلية — لتشخيص النفق",
- d_backup:"نسخ احتياطي / استعادة",d_backup_s:"نقل الإعدادات بين أندرويد والحاسوب",
- d_update:"تحديث كل المجموعات",d_update_s:"جلب جديد من كل مصادر الاشتراك",
- d_about:"حول",d_about_s:"الإصدار والمطور ووصف التطبيق",d_lang:"اللغة",
- dr_foot:'التحليل والمخرجات كلها محلية.<br><span>تمت البرمجة بواسطة</span> <b>محمد حسين زاده</b>',
- p_restart:"إعادة تشغيل الخدمات",p_deldup:"حذف المكرر من المجموعة الحالية",p_delinv:"حذف غير الصالح من المجموعة الحالية",p_delall:"حذف كل إعدادات المجموعة الحالية",p_export:"تصدير إعدادات المجموعة الحالية",p_smart:"اختيار ذكي للمجموعة النشطة",p_tcping:"فحص سريع (TCPing) للمجموعة",p_real:"زمن حقيقي للمجموعة",p_sort:"فرز حسب نتائج الاختبار",p_upd:"تحديث مجموعة الاشتراك الحالية",
- pa_imp:"استيراد إعداد",pa_qr:"استيراد الإعداد من QRcode",pa_clip:"استيراد الإعداد من الحافظة",pa_file:"استيراد الإعداد من ملف محلي",pa_link:"استيراد رابط / اشتراك",pa_man:"إدخال يدوي",
- pf_t:"تصفية الإعدادات",pf_q:"ابحث عن اسم أو خادم…",pf_alive:"الخوادم المستجيبة فقط",pf_sec:"الدرجة الأمنية A و B فقط",
- sh_conn:"اتصال / قطع",sh_test:"فحص الزمن",sh_sec:"تحليل أمني",sh_det:"التفاصيل والمخرجات",sh_copy:"نسخ الرابط",sh_share:"مشاركة",sh_ren:"إعادة تسمية",sh_del:"حذف",
- add_t:"إضافة إعداد",add_t1:"رابط / اشتراك",add_t3:"نموذج يدوي",f_link:"رابط إعداد أو اشتراك أو عدة روابط (كل سطر واحد)",f_fetch:"جلب وإضافة",f_note:"يُجلب رابط الاشتراك مباشرة أولاً ثم عبر وسيط CORS عند الحاجة.",
- f_name:"الاسم",f_proto:"البروتوكول",f_server:"عنوان الخادم",f_port:"المنفذ",f_secret:"UUID / كلمة المرور",f_net:"الشبكة",f_tc:"الأمان",f_method:"طريقة التشفير (SS)",f_pass:"كلمة المرور الثانية (TUIC)",f_make:"إنشاء وإضافة",none_opt:"بدون",
- qr_copy:"نسخ الرابط",qr_dl:"تنزيل PNG",fmt_link:"رابط الإعداد",fmt_x:"JSON كامل — Xray",fmt_s:"JSON كامل — sing-box",d_copy:"نسخ",
- sec_t:"تحليل أمني",sec_enc:"التشفير",sec_st:"التخفي",sec_int:"السلامة",sec_of:"من ١٠٠",sec_note:"التحليل محلي بالكامل؛ لا يُرسل أي إعداد.",
- sm_t:"اختيار الخادم الذكي",sm_note:"الاختيار = الدرجة الأمنية (٦٠٪) + الزمن الحقيقي (٤٠٪).",sm_again:"إعادة الفحص",sm_apply:"الاتصال بالأفضل",sm_best:"الأفضل",
- src_t:"مجموعات الاشتراك (خوادم مجانية)",src_c:"إضافة مصدر مخصص",src_get:"جلب",src_note:"كل مصدر يضيف ١٥٠ إعداداً عشوائياً كحد أقصى؛ وتُحذف المكررات.",
- geo_t:"ملفات المصادر الجغرافية",geo_p1:"يعتمد توجيه «المواقع الإيرانية» على بيانات geosite/geoip.",geo_p2:"المصدر الرسمي: مستودعات v2fly. مدمجة مسبقاً في Hiddify و v2rayNG.",
- about_d:"لوحة ذكية لإدارة الإعدادات مع تحليل أمني محلي و ٦ بروتوكولات ونواة Xray.",
- st_g1:"عام",st_g2:"توجيه إيران",st_g3:"متقدم",
- sg_net:"الشبكة والفحص",sg_ui:"واجهة المستخدم",sg_bk:"النقل بين الأجهزة",sg_dpi:"تجاوز التشويش (DPI)",sg_rt:"التوجيه",sg_adv:"افتراضيات TLS والمخرجات",
- s_dns:"خادم DNS",s_dns_s:"يُطبق في مخرجات JSON للنفق",
- s_ping:"فاصل مراقبة الزمن",s_ping_s:"كم مرة يُعاد فحص حالة الخادم النشط (ثانية)",
- s_to:"مهلة الفحص",s_to_s:"مدة انتظار استجابة الخادم",
- s_mon:"مراقبة تلقائية بعد الاتصال",s_mon_s:"زمن حي وتنبيه عند الانقطاع",
- s_bg:"خلفية متحركة",s_bg_s:"يمكن إيقافها على الأجهزة الضعيفة",
- bk_exp:"نسخ احتياطي (JSON)",bk_exp_s:"ملف احتياطي لكل الإعدادات",bk_copy:"نسخ كل الروابط",bk_copy_s:"للصقها في جهاز آخر",bk_imp:"استعادة من ملف",bk_imp_s:"JSON أو قائمة روابط",bk_get:"تصدير",bk_cp:"نسخ الكل",bk_up:"استعادة",
- r_frag:"تقطيع حزم TLS",r_frag_s:"مضاد للتشويش — الأكثر فعالية في إيران (مخرجات Xray فقط)",
- r_mux_s:"عدة اتصالات عبر نفق واحد",
- r_quic:"حظر QUIC",r_quic_s:"إجبار الحركة إلى TCP؛ QUIC غير مستقر في بعض الشبكات",
- r_dir:"المواقع الإيرانية مباشرة",r_dir_s:"geosite:category-ir ونطاقات .ir دون VPN",
- r_ads:"حظر الإعلانات",r_ads_s:"تُحظر نطاقات الإعلانات",
- a_fp:"بصمة uTLS",a_fp_s:"تُطبق على الإعدادات بدون بصمة",
- a_alpn_s:"مثلاً h2,http/1.1 — فارغ يعني الافتراضي",
- a_fmt:"صيغة المخرجات الافتراضية",a_fmt_s:"الصيغة الافتراضية في «التفاصيل»",
+ d_ver:"لوحة ذكية · ٢٫٥",
+ d_subs2:"الاشتراك والحجم",d_subs2_s:"الاستهلاك والانتهاء",d_group:"مجموعات الاشتراك",d_group_s:"خوادم مجانية ومصادر",d_routing:"التوجيه (إيران)",d_routing_s:"المواقع الإيرانية مباشرة",d_dpi:"تجاوز التشويش",d_dpi_s:"Fragment و Mux",d_geo:"ملفات geo",d_geo_s:"geosite/geoip",d_set:"الإعدادات",d_set_s:"DNS والنواة وقوانين",d_logs:"السجلات",d_logs_s:"١٥٠ حدثاً",d_corelog:"سجل النواة",d_corelog_s:"لتشخيص النفق",d_backup:"نسخ/استعادة",d_backup_s:"نقل بين الأجهزة",d_update:"تحديث الكل",d_update_s:"كل المصادر",d_about:"حول",d_about_s:"الإصدار والمطور",d_lang:"اللغة",st_g5_s:"قواعد جاهزة ومخصصة",
+ dr_foot:'كل شيء محلي.<br><span>تمت البرمجة بواسطة</span> <b>محمد حسين زاده</b>',
+ p_restart:"إعادة تشغيل",p_deldup:"حذف المكرر",p_delinv:"حذف غير الصالح",p_delall:"حذف كل المجموعة",p_export:"تصدير المجموعة",p_smart:"اختيار ذكي",p_tcping:"فحص سريع",p_real:"زمن حقيقي",p_sort:"فرز",p_upd:"تحديث المجموعة",
+ pa_imp:"استيراد",pa_qr:"من QRcode",pa_clip:"من الحافظة",pa_file:"من ملف",pa_link:"رابط/اشتراك",pa_man:"إدخال يدوي",
+ pf_t:"تصفية",pf_q:"ابحث…",pf_alive:"المستجيبة فقط",pf_sec:"A و B فقط",
+ sh_conn:"اتصال/قطع",sh_test:"فحص",sh_sec:"تحليل",sh_det:"تفاصيل",sh_copy:"نسخ",sh_share:"مشاركة",sh_ren:"تسمية",sh_del:"حذف",
+ add_t:"إضافة",add_t1:"رابط",add_t3:"يدوي",f_link:"رابط أو روابط",f_fetch:"جلب وإضافة",f_note:"يُجلب مباشرة ثم عبر وسيط.",f_name:"الاسم",f_proto:"البروتوكول",f_server:"الخادم",f_port:"المنفذ",f_secret:"UUID/كلمة",f_net:"الشبكة",f_tc:"الأمان",f_method:"التشفير",f_pass:"كلمة ثانية",f_make:"إنشاء",none_opt:"بدون",
+ qr_copy:"نسخ",qr_dl:"PNG",fmt_link:"رابط",fmt_x:"Xray",fmt_s:"sing-box",d_copy:"نسخ",
+ sec_t:"تحليل أمني",sec_enc:"تشفير",sec_st:"تخفي",sec_int:"سلامة",sec_of:"من ١٠٠",sec_note:"محلي بالكامل.",
+ sm_t:"اختيار ذكي",sm_note:"أمنية ٦٠٪ + زمن ٤٠٪",sm_again:"إعادة",sm_apply:"الأفضل",sm_best:"الأفضل",
+ src_t:"مجموعات مجانية",src_c:"مصدر مخصص",src_get:"جلب",src_note:"١٥٠ كحد أقصى.",
+ geo_t:"ملفات geo",geo_p1:"يعتمد التوجيه على geosite/geoip.",geo_p2:"مدمجة في Hiddify و v2rayNG.",
+ about_d:"لوحة ذكية بتحليل محلي ونواة Xray.",
+ st_g1:"عام",st_g2:"توجيه إيران",st_g3:"متقدم",st_g4:"النواة و VPN",st_g5:"قواعد وتطبيقات",
+ sg_net:"شبكة",sg_ui:"واجهة",sg_bk:"نقل",sg_dpi:"تشويش",sg_rt:"توجيه",sg_adv:"TLS",sg_core:"نواة Xray",sg_vpn:"VPN",sg_apps:"لكل تطبيق",
+ s_dns:"DNS",s_dns_s:"يُطبق في JSON",s_ping:"فاصل المراقبة",s_ping_s:"ثانية",s_to:"مهلة",s_to_s:"انتظار",s_mon:"مراقبة تلقائية",s_mon_s:"تنبيه انقطاع",s_bg:"خلفية",s_bg_s:"للأجهزة الضعيفة",
+ bk_exp:"نسخة احتياطية",bk_exp_s:"ملف JSON",bk_copy:"نسخ الكل",bk_copy_s:"لجهاز آخر",bk_imp:"استعادة",bk_imp_s:"JSON أو روابط",bk_get:"تصدير",bk_cp:"نسخ",bk_up:"استعادة",
+ r_frag:"تقطيع TLS",r_frag_s:"مضاد للتشويش",r_mux_s:"اتصالات متعددة",r_muxconc:"عدد Mux",r_muxconc_s:"أقصى اتصالات",r_quic:"حظر QUIC",r_quic_s:"إجبار TCP",r_dir:"المواقع الإيرانية مباشرة",r_dir_s:"geosite:category-ir",r_ads:"حظر الإعلانات",r_ads_s:"category-ads-all",
+ a_fp:"بصمة uTLS",a_fp_s:"للإعدادات بدون بصمة",a_alpn_s:"فارغ = افتراضي",a_fmt:"صيغة المخرجات",a_fmt_s:"في التفاصيل",
+ c_sniff:"Sniffing",c_sniff_s:"كشف النطاق (موصى به)",c_routeonly:"RouteOnly",c_routeonly_s:"للتوجيه فقط",c_auto:"اتصال تلقائي",c_auto_s:"عند الفتح",c_loglvl:"مستوى السجل",c_preres:"الحل المسبق",c_testurl:"رابط الفحص",c_sport:"منفذ SOCKS",c_rdns:"DNS بعيد",c_rproto:"بروتوكول",c_ddns:"DNS محلي",c_dhost:"مضيفات DNS",c_dhost_s:"سطر لكل: domain=ip",
+ v_dns:"DNS للنفق",v_mtu:"MTU",v_ipv6:"تفضيل IPv6",v_ipv6_s:"إضافة مسارات IPv6",v_tun:"محرك TUN",v_tun_s:"hev أو AAR",v_hlvl:"سجل Hev",v_hto:"مهلات Hev",v_hto_s:"tcp,udp",
+ apps_mode:"وضع التطبيقات",apps_hint:"تطبيقات محددة فقط أو الكل عداها",apps_none:"معطل",apps_allow:"هذه فقط",apps_disallow:"الكل عداها",apps_pick:"اختيار التطبيقات",apps_open:"قائمة",apps_search:"ابحث…",apps_empty:"لا تطبيقات",apps_cnt:"{n}",
+ ru_preset:"قواعد جاهزة",ru_udp443:"حظر udp443",ru_google:"بروكسي Google",ru_lanip:"تجاوز LAN",ru_landom:"تجاوز نطاقات LAN",ru_ddns:"تجاوز DNS المحلي",ru_ddns_s:"مباشر",ru_custom:"قواعد مخصصة",ru_add:"إضافة",ru_name:"الاسم",ru_hint:"بعد الجاهزة",
  btn_reset:"استعادة",btn_save:"حفظ",
- g_t:"دليل الاتصال",g_p1:"في تطبيق أندرويد: اختر إعداداً ← زر التشغيل ← نفق حقيقي لكامل الحركة.",g_p2:"في المتصفح: الحلقة تقيس الوصول فقط. أدخل الرابط/QR في Hiddify أو v2rayNG.",g_warn:"نصيحة أمنية:",g_warn_p:"الخادم الشخصي هو الأفضل. فعّل Fragment و«المواقع الإيرانية مباشرة» عند التشويش.",
- c_cancel:"إلغاء",c_ok:"تنفيذ",c_close:"إغلاق",c_t:"تأكيد",r_t:"إعادة تسمية",
- sc_t:"مسح QR للإعداد",sc_h:"وجّه الكاميرا نحو رمز QR…",dnd_t:"أفلت الملف لإضافة الإعدادات",
- sub_t:"الاشتراك والحجم المتبقي",sub_add_t:"إضافة اشتراك مشترى",sub_nm:"اسم المجموعة",sub_url:"رابط الاشتراك",sub_add:"إضافة وجلب",sub_used:"المستهلك",sub_left:"المتبقي",sub_exp:"الانتهاء",sub_days:"{n} يوم",sub_expd:"منتهٍ",sub_unk:"غير معروف",sub_upd:"تحديث",sub_edit:"تعديل يدوي",sub_del:"حذف المجموعة",sub_et:"تعديل يدوي للحجم/الانتهاء",sub_tgb:"الحجم الكلي (GB)",sub_dt:"تاريخ الانتهاء",sub_save:"حفظ",sub_buy:"شراء اشتراك:",sub_buy_p:"هذا التطبيق لا يبيع اشتراكات. اشترِ من مزود موثوق وأدخل رابط الاشتراك هنا.",sub_noinfo:"لم تُستلم معلومات الحجم — أدخلها يدوياً.",sub_none:"لا توجد مجموعة اشتراك بعد.",
- m_added:"تمت إضافة {n}",m_empty:"لم يُدخل شيء",m_nf:"لا إعداد صالح",m_nf_in:"لا إعداد صالح في «{x}»",m_fail:"فشل الجلب",m_req:"العنوان والمنفذ والمعرّف مطلوبة",m_mkfail:"فشل الإنشاء",m_pick:"اختر إعداداً أولاً",m_testing:"فحص {x}…",m_pok:"الزمن: {n}ms",m_pfail:"الخادم لم يستجب",m_del:"حُذف",m_copied:"نُسخ",m_copn:"نُسخ {n}",m_share_f:"نُسخ الرابط",
- m_cdel:"حذف «{x}»؟",m_cdelall:"حذف كل {n}؟ لا رجعة.",m_cdinv:"حذف {n} غير صالح؟",m_noinv:"لا غير صالح",m_invdel:"حُذف {n}",m_gempty:"المجموعة فارغة",m_gclear:"فُرِّغت",m_dup:"حُذف {n} مكرراً",m_noexp:"لا شيء للتصدير",
- m_gtest:"فحص سريع لـ{n}…",m_grtest:"زمن حقيقي لـ{n}…",m_gdone:"اكتمل — {a} من {b}",m_sorted:"تم الفرز",m_pickg:"اختر مجموعة أولاً",m_nosrc:"لا مصدر معروف",m_fetch:"جلب «{x}»…",m_nonew:"لا جديد",m_srcfail:"فشل «{x}»",m_upall:"تحديث الكل…",
- m_rest:"إعادة تشغيل…",m_rester:"خطأ",m_restbr:"تطبيق أندرويد فقط",m_clipe:"الحافظة فارغة",m_clipd:"تعذر الوصول للحافظة",m_cam:"الكاميرا غير متاحة",m_jsqr:"مكتبة الماسح مفقودة",m_camd:"رُفض الوصول",m_qrbad:"QR غير صالح",m_qrlib:"مكتبة QR مفقودة",m_qrfail:"فشل QR",m_rfail:"فشلت الاستعادة: {x}",m_nonewf:"لا جديد",m_ufmt:"بنية غير معروفة",m_reset:"أُعيدت الإعدادات",
- m_sb:"يحتاج نواة sing-box",m_ask:"وافق على إذن VPN",m_verr:"خطأ في النفق",m_von:"النفق نشط",m_cap:"حد ٤٠٠",m_read:"تعذرت القراءة",
- m_subadd:"أُضيف «{x}»",m_subsave:"حُفظت",m_subdel:"حُذفت المجموعة",m_subneed:"أدخل الاسم والرابط",m_cdelg:"حذف «{x}» و{n}؟",
- log_ready:"جواز {v} جاهز — {e}",log_bk:"نسخة بـ{n}.",
- env_mob:"متصفح الجوال",env_desk:"حاسوب",env_pwa:"تطبيق مثبت",env_app:"تطبيق أندرويد · نفق"
+ g_t:"دليل",g_p1:"اختر ← تشغيل ← نفق حقيقي.",g_p2:"في المتصفح قياس فقط.",g_warn:"نصيحة:",g_warn_p:"الخادم الشخصي أفضل.",
+ c_cancel:"إلغاء",c_ok:"تنفيذ",c_close:"إغلاق",c_t:"تأكيد",r_t:"تسمية",
+ sc_t:"مسح QR",sc_h:"وجّه الكاميرا…",dnd_t:"أفلت الملف",
+ sub_t:"الاشتراك والحجم",sub_add_t:"إضافة اشتراك",sub_nm:"الاسم",sub_url:"الرابط",sub_add:"إضافة",sub_used:"المستهلك",sub_left:"المتبقي",sub_exp:"الانتهاء",sub_days:"{n} يوم",sub_expd:"منتهٍ",sub_unk:"؟",sub_upd:"تحديث",sub_edit:"تعديل",sub_del:"حذف",sub_et:"تعديل يدوي",sub_tgb:"الحجم GB",sub_dt:"التاريخ",sub_save:"حفظ",sub_buy:"شراء:",sub_buy_p:"من مزود موثوق ثم أدخل الرابط هنا.",sub_noinfo:"لا بيانات — يدوياً.",sub_none:"لا مجموعات بعد.",
+ m_added:"أُضيف {n}",m_empty:"فارغ",m_nf:"لا نتائج",m_nf_in:"لا شيء في «{x}»",m_fail:"فشل",m_req:"حقول مطلوبة",m_mkfail:"فشل",m_pick:"اختر أولاً",m_testing:"فحص {x}…",m_pok:"{n}ms",m_pfail:"لا استجابة",m_del:"حُذف",m_copied:"نُسخ",m_copn:"{n}",m_share_f:"نُسخ",
+ m_cdel:"حذف «{x}»؟",m_cdelall:"حذف {n}؟",m_cdinv:"حذف {n}؟",m_noinv:"لا شيء",m_invdel:"حُذف {n}",m_gempty:"فارغة",m_gclear:"فُرِّغت",m_dup:"{n}",m_noexp:"لا شيء",
+ m_gtest:"فحص {n}…",m_grtest:"زمن {n}…",m_gdone:"{a}/{b}",m_sorted:"تم",m_pickg:"اختر مجموعة",m_nosrc:"لا مصدر",m_fetch:"جلب {x}…",m_nonew:"لا جديد",m_srcfail:"فشل {x}",m_upall:"الكل…",
+ m_rest:"جارٍ…",m_rester:"خطأ",m_restbr:"أندرويد فقط",m_clipe:"فارغة",m_clipd:"تعذر",m_cam:"لا كاميرا",m_jsqr:"مكتبة مفقودة",m_camd:"مرفوض",m_qrbad:"غير صالح",m_qrlib:"مفقودة",m_qrfail:"فشل",m_rfail:"فشل: {x}",m_nonewf:"لا جديد",m_ufmt:"غير معروف",m_reset:"أُعيد",
+ m_sb:"يحتاج sing-box",m_ask:"وافق على VPN",m_verr:"خطأ",m_von:"النفق نشط",m_cap:"حد ٤٠٠",m_read:"تعذر القراءة",
+ m_subadd:"أُضيف",m_subsave:"حُفظ",m_subdel:"حُذفت",m_subneed:"الاسم والرابط",m_cdelg:"حذف {x}؟",
+ m_ruleadd:"أُضيفت",m_ruledel:"حُذفت",m_ruledup:"مكررة",m_appsload:"جارٍ الجلب…",
+ log_ready:"جواز {v} — {e}",log_bk:"نسخة {n}.",
+ env_mob:"جوال",env_desk:"حاسوب",env_pwa:"مثبت",env_app:"أندرويد · نفق"
 },
 en:{
  app:"Gozar",credit:"Developed by",tb_title:"Config File",tb_sub_default:"Gozar · Smart Panel",tb_sub_android:"Android app · Xray core",tb_testing:"Testing {a}/{b}",
@@ -903,63 +965,46 @@ en:{
  ring_conn:"Connect",ring_disc:"Disconnect",ring_chk:"Checking",ring_hint:"Tap to test",ring_retry:"Tap to retry",
  m_ping:"Ping",m_status:"Status",m_sec:"Security",m_proto:"Proto",st_ok:"Reachable",st_down:"Down",
  a_test:"Quick test",a_sec:"Security audit",a_detail:"Details",a_copy:"Copy",
- hint_browser:'The ring <b>really</b> tests server reachability. For a real tunnel, import the output into Hiddify / v2rayNG.',
- hint_android:'<b>Real tunnel is active</b> — all device traffic goes through the Xray core. Play = disconnect.',
- empty_none:"No configs added yet.",empty_f:"No configs match this filter/group.",b_add:"Add",b_free:"Free servers",manual:"Manual",
+ hint_browser:'The ring <b>really</b> tests reachability. For a real tunnel, import the output into Hiddify / v2rayNG.',
+ hint_android:'<b>Real tunnel active</b> — all traffic via Xray core. Play = disconnect.',
+ empty_none:"No configs added yet.",empty_f:"No matches.",b_add:"Add",b_free:"Free servers",manual:"Manual",
  sc_none:"Not connected",sc_busy:"Checking…",sc_on:"Connected",sc_tun:"Tunnel active",sc_err:"Unreachable",
- d_ver:"Smart config panel · v2.4",
- d_subs2:"Subscription & quota",d_subs2_s:"Used/remaining traffic and expiry days per subscription",
- d_group:"Subscription groups",d_group_s:"Fetch free servers and add custom sources",
- d_routing:"Routing settings (Iran)",d_routing_s:"Iran sites direct, ads blocking and QUIC",
- d_dpi:"DPI bypass settings",d_dpi_s:"Fragment, Mux and anti-throttling options",
- d_geo:"Geo resource files",d_geo_s:"About geosite/geoip files used by routing",
- d_set:"Settings",d_set_s:"DNS, timeouts, backup and language",
- d_logs:"Logs",d_logs_s:"Last 150 app events",
- /* ═══ گام ۹-ب ═══ */
- d_corelog:"Xray core log",d_corelog_s:"Internal core output for tunnel debugging",
- d_backup:"Backup / Restore",d_backup_s:"Transfer configs between Android & desktop",
- d_update:"Update all groups",d_update_s:"Re-fetch from all subscription sources",
- d_about:"About",d_about_s:"Version, developer and description",d_lang:"Language",
- dr_foot:'All analysis & exports are local.<br><span>Developed by</span> <b>Mohammad Hosseinzadeh</b>',
- p_restart:"Restart service",p_deldup:"Remove duplicates in current group",p_delinv:"Remove invalid configs in current group",p_delall:"Remove all configs in current group",p_export:"Export current group configs",p_smart:"Smart select for active group",p_tcping:"Quick test (TCPing) current group",p_real:"Real latency for current group",p_sort:"Sort by test results",p_upd:"Update current subscription group",
- pa_imp:"Import config",pa_qr:"Import config from QRcode",pa_clip:"Import config from clipboard",pa_file:"Import config from local file",pa_link:"Import link / subscription",pa_man:"Manual input",
- pf_t:"Filter configs",pf_q:"Search name or server…",pf_alive:"Reachable servers only",pf_sec:"Security grade A & B only",
+ d_ver:"Smart config panel · v2.5",
+ d_subs2:"Subscription & quota",d_subs2_s:"Usage/expiry per subscription",d_group:"Subscription groups",d_group_s:"Free servers & sources",d_routing:"Routing (Iran)",d_routing_s:"Iran direct, ads, QUIC",d_dpi:"DPI bypass",d_dpi_s:"Fragment, Mux",d_geo:"Geo files",d_geo_s:"geosite/geoip",d_set:"Settings",d_set_s:"DNS, core, rules, apps",d_logs:"Logs",d_logs_s:"Last 150 events",d_corelog:"Xray core log",d_corelog_s:"Internal core output for debugging",d_backup:"Backup / Restore",d_backup_s:"Transfer between devices",d_update:"Update all groups",d_update_s:"Re-fetch sources",d_about:"About",d_about_s:"Version & developer",d_lang:"Language",st_g5_s:"Preset & custom rules",
+ dr_foot:'All local.<br><span>Developed by</span> <b>Mohammad Hosseinzadeh</b>',
+ p_restart:"Restart service",p_deldup:"Remove duplicates",p_delinv:"Remove invalid",p_delall:"Remove all in group",p_export:"Export group",p_smart:"Smart select",p_tcping:"Quick test group",p_real:"Real latency group",p_sort:"Sort by results",p_upd:"Update group",
+ pa_imp:"Import config",pa_qr:"From QRcode",pa_clip:"From clipboard",pa_file:"From local file",pa_link:"Link / subscription",pa_man:"Manual input",
+ pf_t:"Filter",pf_q:"Search…",pf_alive:"Reachable only",pf_sec:"Grade A & B only",
  sh_conn:"Connect / Disconnect",sh_test:"Latency test",sh_sec:"Security audit",sh_det:"Details & export",sh_copy:"Copy link",sh_share:"Share",sh_ren:"Rename",sh_del:"Delete",
- add_t:"Add config",add_t1:"Link / subscription",add_t3:"Manual form",f_link:"Config link, subscription or multiple links (one per line)",f_fetch:"Fetch & add",f_note:"Subscription URLs are fetched directly first, via a CORS proxy if blocked.",
- f_name:"Name",f_proto:"Protocol",f_server:"Server address",f_port:"Port",f_secret:"UUID / password",f_net:"Network",f_tc:"Security",f_method:"Cipher (SS)",f_pass:"Second password (TUIC)",f_make:"Build & add",none_opt:"None",
+ add_t:"Add config",add_t1:"Link / subscription",add_t3:"Manual form",f_link:"Config link, subscription or links (one per line)",f_fetch:"Fetch & add",f_note:"Fetched directly first, via CORS proxy if blocked.",f_name:"Name",f_proto:"Protocol",f_server:"Server address",f_port:"Port",f_secret:"UUID / password",f_net:"Network",f_tc:"Security",f_method:"Cipher (SS)",f_pass:"Second password (TUIC)",f_make:"Build & add",none_opt:"None",
  qr_copy:"Copy link",qr_dl:"Download PNG",fmt_link:"Config link",fmt_x:"Full JSON — Xray",fmt_s:"Full JSON — sing-box",d_copy:"Copy",
- sec_t:"Security audit",sec_enc:"Encryption",sec_st:"Stealth",sec_int:"Integrity",sec_of:"of 100",sec_note:"Analysis is fully local; no config is ever sent anywhere.",
- sm_t:"Smart server selection",sm_note:"Score = security grade (60%) + real ping (40%).",sm_again:"Re-test",sm_apply:"Connect to best",sm_best:"Best",
- src_t:"Subscription groups (free servers)",src_c:"Add custom source",src_get:"Fetch",src_note:"Each source adds up to 150 random configs; duplicates removed. Public configs may log your traffic.",
- geo_t:"Geo resource files",geo_p1:"Iran-direct routing in Xray output relies on geosite/geoip data.",geo_p2:"Official source: v2fly repos on GitHub. Pre-bundled in Hiddify & v2rayNG.",
- about_d:"Smart config manager with local security auditing, 6 protocols, Iran optimizations and the Xray core in the Android app.",
- st_g1:"General",st_g2:"Iran routing",st_g3:"Advanced",
- sg_net:"Network & testing",sg_ui:"Interface",sg_bk:"Transfer between devices",sg_dpi:"DPI bypass",sg_rt:"Routing",sg_adv:"TLS & export defaults",
- s_dns:"DNS server",s_dns_s:"Applied in the tunnel JSON output",
- s_ping:"Ping monitor interval",s_ping_s:"How often the active server is re-tested (seconds)",
- s_to:"Test timeout",s_to_s:"How long to wait for a server response",
- s_mon:"Auto-monitor after connect",s_mon_s:"Live ping and disconnect alerts",
- s_bg:"Background animation",s_bg_s:"Can be turned off on weak phones",
- bk_exp:"Backup export (JSON)",bk_exp_s:"Backup file of all configs",bk_copy:"Copy all links",bk_copy_s:"To paste on another device",bk_imp:"Restore from file",bk_imp_s:"JSON or link list — duplicates removed",bk_get:"Export",bk_cp:"Copy all",bk_up:"Restore",
- r_frag:"TLS fragment",r_frag_s:"Splits Client Hello to beat DPI — most effective in Iran (Xray output only)",
- r_mux_s:"Multiple connections over one tunnel",
- r_quic:"Block QUIC",r_quic_s:"Forces TCP; QUIC is unstable on some Iranian networks",
- r_dir:"Iran sites direct",r_dir_s:"geosite:category-ir & .ir domains without VPN",
- r_ads:"Block ads",r_ads_s:"Ad domains (category-ads-all) are blocked",
- a_fp:"uTLS fingerprint",a_fp_s:"Applied to configs without a fingerprint",
- a_alpn_s:"e.g. h2,http/1.1 — empty means default",
- a_fmt:"Default export format",a_fmt_s:"Default format in the “Details” dialog",
+ sec_t:"Security audit",sec_enc:"Encryption",sec_st:"Stealth",sec_int:"Integrity",sec_of:"of 100",sec_note:"Fully local analysis.",
+ sm_t:"Smart selection",sm_note:"Security (60%) + ping (40%).",sm_again:"Re-test",sm_apply:"Connect to best",sm_best:"Best",
+ src_t:"Subscription groups (free)",src_c:"Add custom source",src_get:"Fetch",src_note:"Up to 150 random configs each; dedup.",
+ geo_t:"Geo resource files",geo_p1:"Iran-direct routing relies on geosite/geoip.",geo_p2:"From v2fly repos; pre-bundled in Hiddify & v2rayNG.",
+ about_d:"Smart config manager with local security audit, 6 protocols and Xray core.",
+ st_g1:"General",st_g2:"Iran routing",st_g3:"Advanced",st_g4:"Core & VPN",st_g5:"Rules & Apps",
+ sg_net:"Network & testing",sg_ui:"Interface",sg_bk:"Transfer between devices",sg_dpi:"DPI bypass",sg_rt:"Routing",sg_adv:"TLS & export defaults",sg_core:"Xray core",sg_vpn:"VPN settings",sg_apps:"Per-app proxy",
+ s_dns:"DNS server",s_dns_s:"Applied in tunnel JSON",s_ping:"Ping monitor interval",s_ping_s:"Seconds between re-tests",s_to:"Test timeout",s_to_s:"Server response wait",s_mon:"Auto-monitor after connect",s_mon_s:"Live ping & alerts",s_bg:"Background animation",s_bg_s:"Can be disabled on weak phones",
+ bk_exp:"Backup export (JSON)",bk_exp_s:"Backup file of all configs",bk_copy:"Copy all links",bk_copy_s:"Paste on another device",bk_imp:"Restore from file",bk_imp_s:"JSON or link list — dedup",bk_get:"Export",bk_cp:"Copy all",bk_up:"Restore",
+ r_frag:"TLS fragment",r_frag_s:"Anti-DPI — most effective in Iran (Xray only)",r_mux_s:"Multiple connections over one tunnel",r_muxconc:"Mux concurrency",r_muxconc_s:"Max parallel streams on tunnel",r_quic:"Block QUIC",r_quic_s:"Force TCP",r_dir:"Iran sites direct",r_dir_s:"geosite:category-ir & .ir without VPN",r_ads:"Block ads",r_ads_s:"Ad domains blocked",
+ a_fp:"uTLS fingerprint",a_fp_s:"For configs without fingerprint",a_alpn_s:"Empty = default",a_fmt:"Default export format",a_fmt_s:"Format in “Details”",
+ c_sniff:"Enable sniffing",c_sniff_s:"Detect domain from traffic — recommended for routing",c_routeonly:"Route only",c_routeonly_s:"Sniffed name used for routing only, not destination",c_auto:"Auto-connect on launch",c_auto_s:"Connect last active config automatically",c_loglvl:"Core log level",c_preres:"Outbound domain pre-resolve",c_testurl:"Latency test URL",c_sport:"Local SOCKS port",c_rdns:"Remote DNS (optional)",c_rproto:"protocol",c_ddns:"Domestic DNS",c_dhost:"DNS direct hosts (domain=IP)",c_dhost_s:"One per line: example.com=1.2.3.4",
+ v_dns:"VPN tunnel DNS (IPv4)",v_mtu:"Tunnel MTU (default 1500)",v_ipv6:"Prefer IPv6",v_ipv6_s:"Add IPv6 routes to tunnel",v_tun:"TUN engine",v_tun_s:"hev-socks5-tunnel or built-in AAR loop",v_hlvl:"Hev log level",v_hto:"Hev idle/udp timeout (seconds)",v_hto_s:"tcp,udp — default 300,60",
+ apps_mode:"Per-app proxy mode",apps_hint:"Only selected apps use the tunnel, or all except them",apps_none:"Disabled (all apps)",apps_allow:"Only these",apps_disallow:"All except these",apps_pick:"Select apps",apps_open:"Open list",apps_search:"Search apps…",apps_empty:"No apps found",apps_cnt:"{n} apps",
+ ru_preset:"Preset rules",ru_udp443:"Block udp443",ru_google:"Proxy Google",ru_lanip:"Bypass LAN IPs",ru_landom:"Bypass LAN domains",ru_ddns:"Bypass domestic DNS",ru_ddns_s:"Local DNS servers go direct",ru_custom:"Custom rules",ru_add:"Add rule",ru_name:"Rule name",ru_hint:"Custom rules apply after presets",
  btn_reset:"Reset",btn_save:"Save",
- g_t:"Connection guide",g_p1:"Android app (APK with Xray core): pick a config → play button → real tunnel for all traffic.",g_p2:"In browser: the ring only tests reachability. For a real tunnel, import the link/QR into Hiddify or v2rayNG, or grab full Xray JSON from “Details”.",g_warn:"Security tip:",g_warn_p:"For serious use, a private server is best. Enable Fragment and “Iran sites direct” if throttled.",
+ g_t:"Connection guide",g_p1:"Android app: pick a config → play → real tunnel for all traffic.",g_p2:"Browser: ring tests reachability only. For a real tunnel import link/QR into Hiddify or v2rayNG.",g_warn:"Security tip:",g_warn_p:"A private server is best for serious use. Enable Fragment and “Iran direct” if throttled.",
  c_cancel:"Cancel",c_ok:"Confirm",c_close:"Close",c_t:"Confirm",r_t:"Rename",
- sc_t:"Scan config QR",sc_h:"Point the camera at the config QR code…",dnd_t:"Drop a file to import configs",
- sub_t:"Subscription & quota",sub_add_t:"Add a purchased subscription",sub_nm:"Group name",sub_url:"Subscription URL",sub_add:"Add & fetch",sub_used:"Used",sub_left:"Remaining",sub_exp:"Expiry",sub_days:"{n} days",sub_expd:"Expired",sub_unk:"Unknown",sub_upd:"Update",sub_edit:"Manual edit",sub_del:"Delete group",sub_et:"Manually edit quota / expiry",sub_tgb:"Total quota (GB)",sub_dt:"Expiry date",sub_save:"Save",sub_buy:"Buying a subscription:",sub_buy_p:"This app does not sell subscriptions. Buy from a trusted provider and paste its subscription URL here; usage and expiry are read from the server automatically (if supported) or entered via “Manual edit”.",sub_noinfo:"No quota info received from server — enter it via “Manual edit”.",sub_none:"No subscription group yet — fetch from “Free servers” or add your own.",
- m_added:"{n} configs added",m_empty:"Nothing entered",m_nf:"No recognizable config found",m_nf_in:"No recognizable config in “{x}”",m_fail:"Fetch failed",m_req:"Address, port and secret are required",m_mkfail:"Failed to build config",m_pick:"Select a config first (tap a row)",m_testing:"Testing {x}…",m_pok:"Ping: {n}ms",m_pfail:"Server unreachable",m_del:"Config deleted",m_copied:"Copied to clipboard",m_copn:"{n} links copied",m_share_f:"Link copied",
- m_cdel:"Delete “{x}”?",m_cdelall:"Delete all {n} configs? Cannot be undone.",m_cdinv:"Remove {n} invalid configs?",m_noinv:"No invalid configs here",m_invdel:"{n} removed",m_gempty:"Group is empty",m_gclear:"Group cleared",m_dup:"{n} duplicates removed",m_noexp:"Nothing to export",
+ sc_t:"Scan config QR",sc_h:"Point camera at config QR…",dnd_t:"Drop a file to import configs",
+ sub_t:"Subscription & quota",sub_add_t:"Add purchased subscription",sub_nm:"Group name",sub_url:"Subscription URL",sub_add:"Add & fetch",sub_used:"Used",sub_left:"Remaining",sub_exp:"Expiry",sub_days:"{n} days",sub_expd:"Expired",sub_unk:"Unknown",sub_upd:"Update",sub_edit:"Manual edit",sub_del:"Delete group",sub_et:"Edit quota / expiry",sub_tgb:"Total quota (GB)",sub_dt:"Expiry date",sub_save:"Save",sub_buy:"Buying a subscription:",sub_buy_p:"This app does not sell subscriptions. Buy from a trusted provider and paste the subscription URL here; usage/expiry read automatically if supported, or via Manual edit.",sub_noinfo:"No quota info from server — use Manual edit.",sub_none:"No subscription group yet.",
+ m_added:"{n} configs added",m_empty:"Nothing entered",m_nf:"No recognizable config found",m_nf_in:"None in “{x}”",m_fail:"Fetch failed",m_req:"Address, port and secret required",m_mkfail:"Build failed",m_pick:"Select a config first (tap a row)",m_testing:"Testing {x}…",m_pok:"Ping: {n}ms",m_pfail:"Server unreachable",m_del:"Deleted",m_copied:"Copied to clipboard",m_copn:"{n} links copied",m_share_f:"Link copied",
+ m_cdel:"Delete “{x}”?",m_cdelall:"Delete all {n}? Cannot be undone.",m_cdinv:"Remove {n} invalid?",m_noinv:"No invalid configs here",m_invdel:"{n} removed",m_gempty:"Group is empty",m_gclear:"Group cleared",m_dup:"{n} duplicates removed",m_noexp:"Nothing to export",
  m_gtest:"Quick-testing {n}…",m_grtest:"Real-latency testing {n}…",m_gdone:"Done — {a} of {b} reachable",m_sorted:"Sorted",m_pickg:"Pick a group first",m_nosrc:"No known source",m_fetch:"Fetching “{x}”…",m_nonew:"No new in “{x}”",m_srcfail:"Failed to fetch “{x}”",m_upall:"Updating all…",
  m_rest:"Restarting…",m_rester:"Restart failed",m_restbr:"Android app only",m_clipe:"Clipboard empty",m_clipd:"Clipboard denied — paste manually",m_cam:"Camera unavailable",m_jsqr:"Scanner library missing",m_camd:"Camera denied",m_qrbad:"QR has no valid config",m_qrlib:"QR library missing",m_qrfail:"QR generation failed",m_rfail:"Restore failed: {x}",m_nonewf:"Nothing new",m_ufmt:"Unknown structure",m_reset:"Settings reset",
  m_sb:"Needs sing-box core",m_ask:"Approve VPN permission",m_verr:"Tunnel start failed",m_von:"Tunnel active",m_cap:"400-config limit",m_read:"Cannot read file",
  m_subadd:"“{x}” added",m_subsave:"Info saved",m_subdel:"Group deleted",m_subneed:"Enter name and URL",m_cdelg:"Delete group “{x}” and {n} configs?",
+ m_ruleadd:"Rule added",m_ruledel:"Rule deleted",m_ruledup:"Duplicate or empty rule",m_appsload:"Loading app list…",
  log_ready:"Gozar {v} ready — {e}",log_bk:"Backup with {n} configs downloaded.",
  env_mob:"Mobile browser",env_desk:"Desktop",env_pwa:"Installed app",env_app:"Android app · tunnel"
 }};
@@ -969,7 +1014,7 @@ if(!I18N[LANG]) LANG='fa';
 function t(k,p){ let s=(I18N[LANG]&&I18N[LANG][k])||I18N.fa[k]||k; if(p) for(const key in p) s=s.split('{'+key+'}').join(p[key]); return s; }
 
 /* ═══════════ ابزارها ═══════════ */
-const APP_VERSION='2.4.0';
+const APP_VERSION='2.5.0';
 const $=function(s){ return document.querySelector(s); };
 const esc=function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); };
 const wait=function(ms){ return new Promise(function(r){ setTimeout(r,ms); }); };
@@ -1011,10 +1056,28 @@ const ICON_DATA='data:image/svg+xml,'+encodeURIComponent(ICON_SVG);
 const IS_ANDROID_APP=!!window.GozarAndroid;
 const IS_TOUCH=(window.matchMedia&&matchMedia('(pointer: coarse)').matches)||('ontouchstart' in window);
 
-/* تنظیمات */
-const DEFAULTS={net:{dns:'1.1.1.1',pingInt:8,timeout:6},ui:{monitor:true,bg:true},ir:{frag:false,packets:'tlshello',length:'100-200',interval:'10-20',mux:false,quic:false,directIr:true,ads:true},adv:{fp:'chrome',alpn:'',fmt:'link'}};
+/* ═══════════ تنظیمات (گسترش‌یافته) ═══════════ */
+const DEFAULTS={
+  net:{dns:'1.1.1.1',pingInt:8,timeout:6},
+  ui:{monitor:true,bg:true},
+  ir:{frag:false,packets:'tlshello',length:'100-200',interval:'10-20',mux:false,muxConc:8,quic:false,directIr:true,ads:true},
+  adv:{fp:'chrome',alpn:'',fmt:'link'},
+  core:{sniffing:true,routeOnly:false,autoConn:false,logLevel:'warning',preResolve:'usePlatformResolvers',testUrl:'https://www.gstatic.com/generate_204',socksPort:10808,remoteDns:'1.1.1.1',remoteProto:'https',domesticDns:'223.5.5.5',dnsHosts:''},
+  vpn:{dns:'1.1.1.1',mtu:1500,ipv6:false,tunEngine:'hev',hevLogLevel:'warn',hevTimeouts:'300,60'},
+  apps:{mode:'none',list:[]},
+  rules:{blockUdp443:false,proxyGoogle:false,bypassLanIp:true,bypassLanDom:true,bypassDomesticDns:false,custom:[]}
+};
 let settings=JSON.parse(JSON.stringify(DEFAULTS));
-function loadSettings(){ try{ const d=JSON.parse(localStorage.getItem('gozar.settings.v1')); if(d) for(const k of ['net','ui','ir','adv']) if(d[k]) Object.assign(settings[k],d[k]); }catch(e){} }
+function loadSettings(){
+  try{
+    const d=JSON.parse(localStorage.getItem('gozar.settings.v1'));
+    if(d){
+      ['net','ui','ir','adv','core','vpn','apps','rules'].forEach(function(k){
+        if(d[k]&&settings[k]) Object.assign(settings[k],d[k]);
+      });
+    }
+  }catch(e){}
+}
 function saveSettings(){ try{ localStorage.setItem('gozar.settings.v1',JSON.stringify(settings)); }catch(e){} }
 
 /* پارسر */
@@ -1087,13 +1150,25 @@ function buildFromForm(f){
   return null;
 }
 
-/* خروجی‌ها */
+/* ═══════════ خروجی‌ها (گسترش‌یافته) ═══════════ */
 function tlsBlock(c){
   const tt={serverName:c.sni||c.server,allowInsecure:!!c.insecure};
-  const fp=c.fp||settings.adv.fp; if(fp&&fp!=='none') tt.fingerprint=fp;
+  const fp=c.fp||settings.adv.fp;
+  if(fp&&fp!=='none') tt.fingerprint=fp;
   const alpn=(c.alpn||settings.adv.alpn).trim();
   if(alpn) tt.alpn=alpn.split(',').map(function(x){return x.trim();}).filter(function(x){return !!x;});
   return tt;
+}
+function parseHosts(txt){
+  const h={};
+  String(txt||'').split('\n').forEach(function(l){
+    const i=l.indexOf('=');
+    if(i>0){ const k=l.slice(0,i).trim(),v=l.slice(i+1).trim(); if(k&&v) h[k]=v; }
+  });
+  return Object.keys(h).length?h:undefined;
+}
+function splitList(s){
+  return String(s||'').split(',').map(function(x){ return x.trim(); }).filter(function(x){ return !!x; });
 }
 function xrayOut(c){
   if(['vless','vmess','trojan','ss'].indexOf(c.proto)===-1) return null;
@@ -1113,14 +1188,76 @@ function xrayOut(c){
     proxy.streamSettings.sockopt={dialerProxy:'fragment'};
     outbounds.push({tag:'fragment',protocol:'blackhole',settings:{fragment:{packets:settings.ir.packets,length:settings.ir.length||'100-200',interval:settings.ir.interval||'10-20'}}});
   }
-  if(settings.ir.mux) proxy.mux={enabled:true,concurrency:8};
+  if(settings.ir.mux) proxy.mux={enabled:true,concurrency:Math.max(1,+settings.ir.muxConc||8)};
   outbounds.push({tag:'direct',protocol:'freedom',settings:{}});
   outbounds.push({tag:'block',protocol:'blackhole',settings:{response:{type:'http'}}});
+
+  const sp=Math.max(1024,+settings.core.socksPort||10808);
+  let sniff;
+  if(settings.core.sniffing){
+    sniff={enabled:true,destOverride:['http','tls','quic'],routeOnly:!!settings.core.routeOnly};
+  }
+
   const rules=[];
+  const R=settings.rules||{};
   if(settings.ir.ads) rules.push({type:'field',domain:['geosite:category-ads-all'],outboundTag:'block'});
-  if(settings.ir.quic) rules.push({type:'field',port:'443',network:'udp',outboundTag:'block'});
-  if(settings.ir.directIr){ rules.push({type:'field',domain:['geosite:category-ir','domain:ir'],outboundTag:'direct'}); rules.push({type:'field',ip:['geoip:ir'],outboundTag:'direct'}); }
-  return JSON.stringify({log:{loglevel:'warning'},dns:{servers:[settings.net.dns]},inbounds:[{tag:'socks-in',listen:'127.0.0.1',port:10808,protocol:'socks',settings:{udp:true}},{tag:'http-in',listen:'127.0.0.1',port:10809,protocol:'http',settings:{}}],outbounds:outbounds,routing:{domainStrategy:'IPIfNonMatch',rules:rules}},null,2);
+  if(settings.ir.quic||R.blockUdp443) rules.push({type:'field',port:'443',network:'udp',outboundTag:'block'});
+  if(R.bypassLanIp) rules.push({type:'field',ip:['geoip:private'],outboundTag:'direct'});
+  if(R.bypassLanDom) rules.push({type:'field',domain:['geosite:private'],outboundTag:'direct'});
+  if(R.proxyGoogle) rules.push({type:'field',domain:['geosite:google'],outboundTag:'proxy'});
+  if(R.bypassDomesticDns){
+    var dd=splitList(settings.core.domesticDns);
+    if(dd.length) rules.push({type:'field',ip:dd,outboundTag:'direct'});
+  }
+  if(settings.ir.directIr){
+    rules.push({type:'field',domain:['geosite:category-ir','domain:ir'],outboundTag:'direct'});
+    rules.push({type:'field',ip:['geoip:ir'],outboundTag:'direct'});
+  }
+  (R.custom||[]).forEach(function(r){
+    const o={type:'field',outboundTag:(r.outbound||'proxy')};
+    const d=splitList(r.domains), ip=splitList(r.ips);
+    if(d.length) o.domain=d;
+    if(ip.length) o.ip=ip;
+    if(r.port) o.port=String(r.port);
+    if(r.network&&r.network!=='any') o.network=r.network;
+    if(o.domain||o.ip||o.port) rules.push(o);
+  });
+
+  let dstrat='AsIs';
+  if(settings.ir.directIr||R.bypassLanIp) dstrat='IPIfNonMatch';
+  if(settings.core.preResolve==='useIP') dstrat='UseIP';
+  else if(settings.core.preResolve==='useNonIP') dstrat='UseIPv4';
+
+  const dnsServers=[];
+  if(settings.core.remoteDns) dnsServers.push(settings.core.remoteDns);
+  if(settings.core.domesticDns) dnsServers.push(settings.core.domesticDns);
+  if(!dnsServers.length) dnsServers.push(settings.net.dns);
+
+  const hosts=parseHosts(settings.core.dnsHosts);
+  const dnsObj={servers:dnsServers};
+  if(hosts) dnsObj.hosts=hosts;
+
+  return JSON.stringify({
+    log:{loglevel:settings.core.logLevel||'warning'},
+    dns:dnsObj,
+    inbounds:[
+      {tag:'socks-in',listen:'127.0.0.1',port:sp,protocol:'socks',settings:{udp:true},sniffing:sniff},
+      {tag:'http-in',listen:'127.0.0.1',port:sp+1,protocol:'http',settings:{}}
+    ],
+    outbounds:outbounds,
+    routing:{domainStrategy:dstrat,rules:rules}
+  },null,2);
+}
+function vpnOut(){
+  return JSON.stringify({
+    dns:settings.vpn.dns||'1.1.1.1',
+    mtu:+settings.vpn.mtu||1500,
+    ipv6:!!settings.vpn.ipv6,
+    tunEngine:settings.vpn.tunEngine||'hev',
+    hevLogLevel:settings.vpn.hevLogLevel||'warn',
+    hevTimeouts:settings.vpn.hevTimeouts||'300,60',
+    apps:{mode:settings.apps.mode||'none',list:settings.apps.list||[]}
+  });
 }
 function singboxOut(c){
   if(['vless','vmess','trojan','ss','hysteria2','tuic'].indexOf(c.proto)===-1) return null;
@@ -1132,12 +1269,27 @@ function singboxOut(c){
   else if(c.proto==='ss') s={type:'shadowsocks',tag:'proxy',server:c.server,server_port:c.port,method:c.method,password:c.secret};
   else if(c.proto==='hysteria2'){ s={type:'hysteria2',tag:'proxy',server:c.server,server_port:c.port,password:c.secret}; s.tls=tlsBlock(c); s.tls.enabled=true; }
   else if(c.proto==='tuic'){ s={type:'tuic',tag:'proxy',server:c.server,server_port:c.port,uuid:c.secret,password:c.pass||'',congestion_control:'bbr'}; s.tls=tlsBlock(c); s.tls.enabled=true; s.tls.alpn=['h3']; }
-  if(settings.ir.mux&&s) s.multiplex={enabled:true,concurrency:8};
+  if(settings.ir.mux&&s) s.multiplex={enabled:true,concurrency:Math.max(1,+settings.ir.muxConc||8)};
   const rules=[];
+  const R=settings.rules||{};
   if(settings.ir.ads) rules.push({geosite:['category-ads-all'],outbound:'block'});
-  if(settings.ir.quic) rules.push({port:443,network:'udp',outbound:'block'});
-  if(settings.ir.directIr){ rules.push({geosite:['category-ir'],outbound:'direct'}); rules.push({domain_suffix:['.ir'],outbound:'direct'}); rules.push({geoip:['ir'],outbound:'direct'}); }
-  return JSON.stringify({log:{level:'warn'},dns:{servers:[{address:settings.net.dns}]},inbounds:[{type:'mixed',tag:'mixed-in',listen:'127.0.0.1',listen_port:2080}],outbounds:[s,{type:'block',tag:'block'},{type:'direct',tag:'direct'}],route:{rules:rules}},null,2);
+  if(settings.ir.quic||R.blockUdp443) rules.push({port:443,network:'udp',outbound:'block'});
+  if(R.bypassLanIp) rules.push({geoip:['private'],outbound:'direct'});
+  if(R.bypassLanDom) rules.push({geosite:['private'],outbound:'direct'});
+  if(R.bypassDomesticDns){ var dd=splitList(settings.core.domesticDns); if(dd.length) rules.push({ip:dd,outbound:'direct'}); }
+  if(settings.ir.directIr){
+    rules.push({geosite:['category-ir'],outbound:'direct'});
+    rules.push({domain_suffix:['.ir'],outbound:'direct'});
+    rules.push({geoip:['ir'],outbound:'direct'});
+  }
+  (R.custom||[]).forEach(function(r){
+    const o={outbound:(r.outbound||'proxy')};
+    const d=splitList(r.domains), ip=splitList(r.ips);
+    if(d.length) o.domain=d;
+    if(ip.length) o.ip_cidr=ip;
+    if(o.domain||o.ip_cidr) rules.push(o);
+  });
+  return JSON.stringify({log:{level:settings.core.logLevel==='warning'?'warn':(settings.core.logLevel||'warn')},dns:{servers:[{address:settings.net.dns}]},inbounds:[{type:'mixed',tag:'mixed-in',listen:'127.0.0.1',listen_port:Math.max(1024,+settings.core.socksPort||10808)}],outbounds:[s,{type:'block',tag:'block'},{type:'direct',tag:'direct'}],route:{rules:rules}},null,2);
 }
 
 /* تحلیل امنیتی */
@@ -1528,13 +1680,13 @@ click('#drSubs2',function(){ closeDrawer(); openSubs(); });
 click('#drGroup',function(){ closeDrawer(); openSources(); });
 click('#drRouting',function(){ closeDrawer(); openSettings('st2'); });
 click('#drDpi',function(){ closeDrawer(); openSettings('st2'); });
+click('#drRules2',function(){ closeDrawer(); openSettings('st5'); });
 click('#drGeo',function(){ closeDrawer(); openOv('#ovGeo'); icons(); });
 click('#drSettings',function(){ closeDrawer(); openSettings('st1'); });
 click('#drLogs',function(){ closeDrawer(); openLogs(); });
-/* ═══ گام ۹-ج: هندلر لاگ هسته ═══ */
 click('#drCoreLog',function(){
   closeDrawer();
-  var txt=(window.GozarAndroid&&window.GozarAndroid.coreLog)?window.GozarAndroid.coreLog():'— (فقط داخل اپ اندروید / only inside the Android app)';
+  var txt=(window.GozarAndroid&&window.GozarAndroid.coreLog)?window.GozarAndroid.coreLog():'— (فقط داخل اپ اندروید)';
   openConfirm(t('d_corelog'),null,
     '<pre dir="ltr" style="max-height:320px;overflow:auto;font-family:var(--mono);font-size:10px;white-space:pre-wrap">'+esc(txt)+'</pre>',
     t('c_close'));
@@ -1554,10 +1706,11 @@ click('#mRestart',function(){
       window.GozarAndroid.stopVpn();
       toast(t('m_rest'),'warn');
       const c=activeCfg();
-      if(c) setTimeout(function(){ try{ window.GozarAndroid.startVpn(xrayOut(c)); }catch(e){} },900);
+      if(c) setTimeout(function(){ try{ if(B_setVpn) B_setVpn(); window.GozarAndroid.startVpn(xrayOut(c)); }catch(e){} },900);
     }catch(e){ toast(t('m_rester'),'err'); }
   } else toast(t('m_restbr'),'warn');
 });
+function B_setVpn(){ try{ if(window.GozarAndroid&&window.GozarAndroid.setVpnParams) window.GozarAndroid.setVpnParams(vpnOut()); }catch(e){} }
 click('#mDelDupes',function(){
   closePops();
   const list=currentList(); const seen={},rm={}; let n=0;
@@ -2170,7 +2323,7 @@ click('#btnRenameOk',function(){
   closeOv($('#ovRename'));
 });
 
-/* ═══════════ مودال + تب‌ها — سیستم ضدخطا ═══════════ */
+/* ═══════════ مودال + تب‌ها ═══════════ */
 function anyOverlayOpen(){
   return !!document.querySelector('.overlay.open, .drawer.open, .sheet.open');
 }
@@ -2193,8 +2346,6 @@ document.querySelectorAll('.overlay').forEach(function(ov){
     if(e.target===ov){ closeOv(ov); if(ov.id==='ovScan') stopScan(); }
   });
 });
-
-/* سوئیچ تب — مستقل از id مودال */
 function activateTab(btn){
   try{
     if(!btn) return;
@@ -2236,7 +2387,7 @@ document.addEventListener('keydown',function(e){
   }
 });
 
-/* تنظیمات */
+/* ═══════════ تنظیمات (شامل تب‌های جدید st4/st5) ═══════════ */
 function openSettings(tab){
   fillSettingsUI();
   openOv('#ovSettings');
@@ -2255,18 +2406,46 @@ function fillSettingsUI(){
   $('#r_interval').value=settings.ir.interval;
   $('#fragFields').classList.toggle('show',settings.ir.frag);
   $('#r_mux').checked=settings.ir.mux;
+  $('#r_muxconc').value=settings.ir.muxConc;
   $('#r_quic').checked=settings.ir.quic;
   $('#r_directIr').checked=settings.ir.directIr;
   $('#r_ads').checked=settings.ir.ads;
   $('#a_fp').value=settings.adv.fp;
   $('#a_alpn').value=settings.adv.alpn;
   $('#a_fmt').value=settings.adv.fmt;
+  $('#c_sniff').checked=settings.core.sniffing;
+  $('#c_routeonly').checked=settings.core.routeOnly;
+  $('#c_routeonly').disabled=!settings.core.sniffing;
+  $('#c_auto').checked=settings.core.autoConn;
+  $('#c_loglvl').value=settings.core.logLevel;
+  $('#c_preres').value=settings.core.preResolve;
+  $('#c_testurl').value=settings.core.testUrl;
+  $('#c_sport').value=settings.core.socksPort;
+  $('#c_rdns').value=settings.core.remoteDns;
+  $('#c_rproto').value=settings.core.remoteProto;
+  $('#c_ddns').value=settings.core.domesticDns;
+  $('#c_dhost').value=settings.core.dnsHosts;
+  $('#v_dns').value=settings.vpn.dns;
+  $('#v_mtu').value=settings.vpn.mtu;
+  $('#v_ipv6').checked=settings.vpn.ipv6;
+  $('#v_tun').value=settings.vpn.tunEngine;
+  $('#v_hlvl').value=settings.vpn.hevLogLevel;
+  $('#v_hto').value=settings.vpn.hevTimeouts;
+  $('#apps_mode').value=settings.apps.mode;
+  $('#ru_udp443').checked=settings.rules.blockUdp443;
+  $('#ru_google').checked=settings.rules.proxyGoogle;
+  $('#ru_lanip').checked=settings.rules.bypassLanIp;
+  $('#ru_landom').checked=settings.rules.bypassLanDom;
+  $('#ru_ddns').checked=settings.rules.bypassDomesticDns;
+  renderRuleList();
 }
 function bindToggle(id,path){
   on(id,'change',function(e){
     const p=path.split('.'); settings[p[0]][p[1]]=e.target.checked; saveSettings();
     if(path==='ir.frag') $('#fragFields').classList.toggle('show',settings.ir.frag);
     if(path==='ui.monitor'&&!settings.ui.monitor&&session.mode==='on') stopMonitor();
+    if(path==='core.sniffing'&&!settings.core.sniffing) $('#c_routeonly').disabled=true;
+    if(path==='core.sniffing'&&settings.core.sniffing) $('#c_routeonly').disabled=false;
   });
 }
 function bindVal(id,path){
@@ -2284,13 +2463,114 @@ bindVal('#r_packets','ir.packets');
 bindVal('#r_length','ir.length');
 bindVal('#r_interval','ir.interval');
 bindToggle('#r_mux','ir.mux');
+on('#r_muxconc','change',function(e){ settings.ir.muxConc=Math.max(1,Math.min(128,+e.target.value||8)); e.target.value=settings.ir.muxConc; saveSettings(); });
 bindToggle('#r_quic','ir.quic');
 bindToggle('#r_directIr','ir.directIr');
 bindToggle('#r_ads','ir.ads');
 bindVal('#a_fp','adv.fp');
 bindVal('#a_alpn','adv.alpn');
 bindVal('#a_fmt','adv.fmt');
+bindToggle('#c_sniff','core.sniffing');
+bindToggle('#c_routeonly','core.routeOnly');
+bindToggle('#c_auto','core.autoConn');
+bindVal('#c_loglvl','core.logLevel');
+bindVal('#c_preres','core.preResolve');
+on('#c_testurl','change',function(e){ settings.core.testUrl=e.target.value.trim()||'https://www.gstatic.com/generate_204'; e.target.value=settings.core.testUrl; saveSettings(); });
+on('#c_sport','change',function(e){ settings.core.socksPort=Math.max(1024,Math.min(65535,+e.target.value||10808)); e.target.value=settings.core.socksPort; saveSettings(); });
+bindVal('#c_rdns','core.remoteDns');
+bindVal('#c_rproto','core.remoteProto');
+bindVal('#c_ddns','core.domesticDns');
+on('#c_dhost','change',function(e){ settings.core.dnsHosts=e.target.value; saveSettings(); });
+bindVal('#v_dns','vpn.dns');
+on('#v_mtu','change',function(e){ settings.vpn.mtu=Math.max(1280,Math.min(9000,+e.target.value||1500)); e.target.value=settings.vpn.mtu; saveSettings(); });
+bindToggle('#v_ipv6','vpn.ipv6');
+bindVal('#v_tun','vpn.tunEngine');
+bindVal('#v_hlvl','vpn.hevLogLevel');
+on('#v_hto','change',function(e){ settings.vpn.hevTimeouts=e.target.value.trim()||'300,60'; e.target.value=settings.vpn.hevTimeouts; saveSettings(); });
+bindVal('#apps_mode','apps.mode');
+bindToggle('#ru_udp443','rules.blockUdp443');
+bindToggle('#ru_google','rules.proxyGoogle');
+bindToggle('#ru_lanip','rules.bypassLanIp');
+bindToggle('#ru_landom','rules.bypassLanDom');
+bindToggle('#ru_ddns','rules.bypassDomesticDns');
 click('#setReset',function(){ settings=JSON.parse(JSON.stringify(DEFAULTS)); saveSettings(); fillSettingsUI(); toast(t('m_reset')); });
+
+/* قوانین سفارشی */
+function renderRuleList(){
+  const box=$('#ruleList');
+  const arr=settings.rules.custom||[];
+  if(!arr.length){ box.innerHTML='<p style="font-size:11px;color:var(--faint);padding:6px 0">—</p>'; return; }
+  box.innerHTML=arr.map(function(r,i){
+    const parts=[];
+    if(r.domains) parts.push('d: '+r.domains);
+    if(r.ips) parts.push('ip: '+r.ips);
+    if(r.port) parts.push('p: '+r.port);
+    if(r.network&&r.network!=='any') parts.push(r.network);
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)">'+
+      '<b style="font-size:11.5px;flex-shrink:0">'+esc(r.name||('#'+(i+1)))+'</b>'+
+      '<span style="font-family:var(--mono);font-size:9.5px;color:var(--sub);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:left">'+esc(parts.join(' · '))+'</span>'+
+      '<span class="grade g-A" style="margin:0">'+esc(r.outbound||'proxy')+'</span>'+
+      '<button class="ibtn danger" data-rdel="'+i+'"><i data-lucide="trash-2"></i></button></div>';
+  }).join('');
+  icons();
+  box.querySelectorAll('[data-rdel]').forEach(function(b){
+    b.onclick=function(){
+      settings.rules.custom.splice(+b.getAttribute('data-rdel'),1);
+      saveSettings(); renderRuleList(); toast(t('m_ruledel'));
+    };
+  });
+}
+click('#ruAddBtn',function(){
+  const r={
+    name:$('#ru_name').value.trim(),
+    domains:$('#ru_doms').value.trim(),
+    ips:$('#ru_ips').value.trim(),
+    port:+$('#ru_port').value||0,
+    network:$('#ru_net').value,
+    outbound:$('#ru_out').value
+  };
+  if(!r.domains&&!r.ips&&!r.port){ toast(t('m_ruledup'),'warn'); return; }
+  if(!r.name) r.name=t('ru_name');
+  settings.rules.custom.push(r);
+  saveSettings(); renderRuleList();
+  $('#ru_name').value=''; $('#ru_doms').value=''; $('#ru_ips').value=''; $('#ru_port').value='';
+  toast(t('m_ruleadd'));
+});
+
+/* پروکسی هر برنامه */
+let appCache=[];
+function openApps(){
+  if(!(window.GozarAndroid&&window.GozarAndroid.getApps)){ toast(t('m_restbr'),'warn'); return; }
+  openOv('#ovApps'); icons();
+  $('#appsList').innerHTML='<p style="text-align:center;color:var(--faint);font-size:12px;padding:20px 0">'+esc(t('m_appsload'))+'</p>';
+  try{ appCache=JSON.parse(window.GozarAndroid.getApps())||[]; }catch(e){ appCache=[]; }
+  renderAppList('');
+}
+function renderAppList(q){
+  const box=$('#appsList');
+  q=String(q||'').toLowerCase();
+  const sel={};
+  (settings.apps.list||[]).forEach(function(p){ sel[p]=1; });
+  const shown=appCache.filter(function(a){ return !q||a.n.toLowerCase().indexOf(q)!==-1||a.p.toLowerCase().indexOf(q)!==-1; });
+  if(!shown.length){ box.innerHTML='<p style="text-align:center;color:var(--faint);font-size:12px;padding:16px 0">'+esc(t('apps_empty'))+'</p>'; $('#appsCnt').textContent=''; return; }
+  box.innerHTML=shown.map(function(a){
+    return '<label style="display:flex;align-items:center;gap:9px;padding:7px 8px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:12px">'+
+      '<input type="checkbox" class="appcb" value="'+esc(a.p)+'"'+(sel[a.p]?' checked':'')+' style="width:16px;height:16px;flex-shrink:0">'+
+      '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(a.n)+'</span>'+
+      '<span dir="ltr" style="font-family:var(--mono);font-size:9px;color:var(--faint);flex-shrink:0;max-width:110px;overflow:hidden;text-overflow:ellipsis">'+esc(a.p)+'</span></label>';
+  }).join('');
+  $('#appsCnt').textContent=t('apps_cnt',{n:shown.length});
+}
+on('#appsQ','input',function(e){ renderAppList(e.target.value); });
+click('#btnAppsPick',function(){ openApps(); });
+click('#appsSave',function(){
+  const sel=[];
+  document.querySelectorAll('#appsList .appcb:checked').forEach(function(cb){ sel.push(cb.value); });
+  settings.apps.list=sel;
+  saveSettings();
+  closeOv($('#ovApps'));
+  toast(t('btn_save')+' ('+sel.length+')');
+});
 
 /* پس‌زمینه */
 (function(){
@@ -2392,6 +2672,9 @@ ringEl.addEventListener('keydown',function(e){ if(e.key==='Enter') ringEl.click(
   const tbSub=document.getElementById('tbSub');
   if(tbSub) tbSub.textContent=(typeof t==='function')?t('tb_sub_android'):'Android · Xray';
   let vpnOn=false;
+  function pushParams(){
+    try{ if(B.setVpnParams) B.setVpnParams((typeof vpnOut==='function')?vpnOut():'{}'); }catch(e){}
+  }
   function setVpn(on){
     if(on===vpnOn) return;
     vpnOn=on;
@@ -2418,11 +2701,24 @@ ringEl.addEventListener('keydown',function(e){ if(e.key==='Enter') ringEl.click(
     if(!c){ toast(t('m_pick'),'warn'); return; }
     const json=xrayOut(c);
     if(!json){ toast(t('m_sb'),'err'); return; }
+    pushParams();
     try{
       const res=B.startVpn(json);
       if(res==='ask') toast(t('m_ask'));
     }catch(err){ toast(t('m_verr'),'err'); }
   },true);
+  /* اتصال خودکار هنگام باز شدن */
+  setTimeout(function(){
+    try{
+      if(typeof settings!=='undefined'&&settings.core&&settings.core.autoConn&&B.vpnStatus()!=='on'){
+        const c=activeCfg();
+        if(c){
+          const json=xrayOut(c);
+          if(json){ pushParams(); B.startVpn(json); }
+        }
+      }
+    }catch(e){}
+  },1500);
 })();
 </script>
 
