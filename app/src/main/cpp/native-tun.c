@@ -16,8 +16,6 @@ static int          s_fd  = -1;
 static volatile int s_running = 0;
 
 #ifndef HEV_STATIC
-/* حالت داینامیک: libhev-socks5-tunnel.so در زمان اجرا لود می‌شود
-   (پوشهٔ lib اپ در LD_LIBRARY_PATH پروسه است، پس dlopen با نام ساده کار می‌کند) */
 static void       *s_lib  = NULL;
 static hev_main_fn p_main = NULL;
 static hev_quit_fn p_quit = NULL;
@@ -42,7 +40,6 @@ static int load_hev(void) {
 #define CALL_MAIN(cfg, fd) p_main(cfg, fd)
 #define CALL_QUIT()        do { if (p_quit) p_quit(); } while (0)
 #else
-/* حالت استاتیک: hev هنگام بیلد داخل libgozar-tun.so لینک شده */
 extern int  hev_socks5_tunnel_main(const char *config_file, int tun_fd);
 extern void hev_socks5_tunnel_quit(void);
 #define HAVE_BRIDGE() 1
@@ -59,9 +56,8 @@ static void* run_thread(void* arg) {
 }
 
 JNIEXPORT jint JNICALL
-Java_com_gozar_vpn_TunBridge_start(JNIEnv* env, jclass clz, jstring cfg, jint fd) {
+Java_com_gozar_vpn_TunBridge_nativeStart(JNIEnv* env, jclass clz, jstring cfg, jint fd) {
     if (s_running) return -2;
-
     if (!HAVE_BRIDGE()) return -1;
 
     const char* c = (*env)->GetStringUTFChars(env, cfg, 0);
@@ -80,7 +76,7 @@ Java_com_gozar_vpn_TunBridge_start(JNIEnv* env, jclass clz, jstring cfg, jint fd
 }
 
 JNIEXPORT void JNICALL
-Java_com_gozar_vpn_TunBridge_stop(JNIEnv* env, jclass clz) {
+Java_com_gozar_vpn_TunBridge_nativeStop(JNIEnv* env, jclass clz) {
     if (s_running) {
         __android_log_print(ANDROID_LOG_INFO, TAG, "hev bridge: quit");
         CALL_QUIT();
