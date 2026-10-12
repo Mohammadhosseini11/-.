@@ -1,4 +1,5 @@
 name: Build APK
+
 on:
   workflow_dispatch:
   push:
@@ -26,9 +27,19 @@ jobs:
           curl -fL --retry 3 -o app/src/main/assets/geosite.dat \
             "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
 
-      - name: کلون و بیلد پل TUN (hev-socks5-tunnel + NDK)
+      # ═══ اصلاح: به‌جای git clone ناشناس (که در CI با
+      # «could not read Username … exit code 128» شکست می‌خورد)
+      # از actions/checkout با توکن داخلی GitHub استفاده می‌شود.
+      # submodules: recursive کتابخانهٔ lwip hev را هم می‌آورد.
+      - name: دریافت hev-socks5-tunnel (با ساب‌ماژول‌ها)
+        uses: actions/checkout@v4
+        with:
+          repository: hev/hev-socks5-tunnel
+          path: third_party/hev-socks5-tunnel
+          submodules: recursive
+
+      - name: بیلد پل TUN (hev-socks5-tunnel + NDK)
         run: |
-          git clone --recursive --depth 1 https://github.com/hev/hev-socks5-tunnel third_party/hev-socks5-tunnel
           NDK=$ANDROID_HOME/ndk/26.3.11579264
           if [ ! -d "$NDK" ]; then
             yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null || true
@@ -45,12 +56,14 @@ jobs:
           done
           ls -la app/src/main/jniLibs/*/
 
-      - uses: actions/setup-java@v4
+      - name: نصب Java 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - name: نصب Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
@@ -72,7 +85,7 @@ jobs:
         run: |
           grep -n -i -E "error:|cannot find symbol|undefined reference|CMake Error" build.log | head -80 || true
 
-      - name: آپلود کلید (فقط بار اول — حتماً دانلود و در ریشهٔ ریپو کامیت کنید)
+      - name: آپلود کلید امضا (فقط بار اول — حتماً دانلود و در ریشهٔ ریپو کامیت کنید)
         if: ${{ hashFiles('gozar.jks') == '' }}
         uses: actions/upload-artifact@v4
         with:
