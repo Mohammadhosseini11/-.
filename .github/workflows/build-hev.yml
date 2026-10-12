@@ -1,0 +1,56 @@
+name: Build Hev Libs (یک‌بار)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  hev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: دریافت سورس
+        uses: actions/checkout@v4
+
+      - name: دریافت hev-socks5-tunnel (با ساب‌ماژول‌ها)
+        uses: actions/checkout@v4
+        with:
+          repository: heiher/hev-socks5-tunnel
+          path: third_party/hev-socks5-tunnel
+          submodules: recursive
+
+      - name: آماده‌سازی NDK
+        run: |
+          NDK=$ANDROID_HOME/ndk/26.3.11579264
+          if [ ! -d "$NDK" ]; then
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null || true
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.3.11579264" >/dev/null
+          fi
+          echo "NDK_PATH=$NDK" >> $GITHUB_ENV
+
+      - name: بیلد hev (اسکریپت تشخیص خودکار)
+        run: bash scripts/build-hev.sh
+
+      - name: بیلد پل JNI (اسکریپت)
+        run: bash scripts/build-jni.sh
+
+      - name: ذخیره در Release (کش دائمی)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view hev-libs -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create hev-libs -R "$GITHUB_REPOSITORY" \
+              --title "Prebuilt gozar-tun libs" --notes "کش پل TUN"
+          mkdir -p out
+          for ABI in arm64-v8a armeabi-v7a x86_64; do
+            cp app/src/main/jniLibs/$ABI/libgozar-tun.so out/libgozar-tun-$ABI.so
+          done
+          gh release upload hev-libs out/libgozar-tun-*.so --clobber -R "$GITHUB_REPOSITORY"
+          echo "در Release ذخیره شد ✓"
+
+      - name: آپلود Artifact (پشتیبان)
+        uses: actions/upload-artifact@v4
+        with:
+          name: gozar-tun-libs
+          path: app/src/main/jniLibs/
