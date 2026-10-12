@@ -5,6 +5,9 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.VpnService;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
@@ -27,18 +30,15 @@ public class GozarVpnService extends VpnService {
     @Override public void onCreate() { super.onCreate(); inst = this; }
     @Override public void onDestroy() { inst = null; super.onDestroy(); }
 
-    /** برای CoreBridge: سوکت‌های هسته نباید از خودِ تونل عبور کنند */
     public static boolean protectFd(int fd) {
         return inst != null && inst.protect(fd);
     }
 
-    /** خطای مرگبار هسته → بستن تونل */
     public static void coreFatal() {
         GozarVpnService s = inst;
         if (s != null) s.stopAll();
     }
 
-    /** تنظیمات VPN از پنل (gozar-vpn.json) */
     private JSONObject readVpnParams() {
         JSONObject v = new JSONObject();
         try {
@@ -55,6 +55,37 @@ public class GozarVpnService extends VpnService {
             android.util.Log.w("GozarCore", "vpn params: " + t);
         }
         return v;
+    }
+
+    /**
+     * پروسه را به شبکهٔ فیزیکی (غیر-VPN) می‌بندد تا سوکت‌های هستهٔ Xray
+     * از خودِ تونل عبور نکنند (جایگزین protect بدون نیازی به هوک هسته).
+     */
+    private void bindProcessToPhysicalNetwork() {
+        try {
+            ConnectivityManager cm = getSystemService(ConnectivityManager.class);
+            Network best = null;
+            NetworkCapabilities bestCap = null;
+            if (cm != null) {
+                for (Network n : cm.getAllNetworks()) {
+                    NetworkCapabilities cap = cm.getNetworkCapabilities(n);
+                    if (cap == null) continue;
+                    if (cap.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) continue;
+                    if (!cap.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) continue;
+                    boolean better = best == null
+                            || cap.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
+                    if (better) { best = n; bestCap = cap; }
+                    if (bestCap != null && bestCap.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) break;
+                }
+            }
+            if (best != null && cm.bindProcessToNetwork(best)) {
+                CoreBridge.log("process bound to physical network — core egress bypasses TUN ✓");
+            } else {
+                CoreBridge.log("WARN: bindProcessToNetwork failed — core egress may loop!");
+            }
+        } catch (Throwable t) {
+            CoreBridge.log("bindProcessToNetwork: " + t);
+        }
     }
 
     @Override
@@ -92,7 +123,6 @@ public class GozarVpnService extends VpnService {
                 } catch (Throwable ignored) {}
             }
 
-            /* Per-app proxy: allow / disallow */
             try {
                 JSONObject apps = v.optJSONObject("apps");
                 String mode = apps == null ? "none" : apps.optString("mode", "none");
@@ -112,6 +142,8 @@ public class GozarVpnService extends VpnService {
 
             tun = b.establish();
             if (tun == null) { stopAll(); return START_NOT_STICKY; }
+
+            bindProcessToPhysicalNetwork();
 
             CoreBridge.setApkPath(getApplicationInfo().sourceDir);
             CoreBridge.start(readFile(path), tun.getFd(),
@@ -136,6 +168,10 @@ public class GozarVpnService extends VpnService {
             try { tun.close(); } catch (Throwable ignored) {}
             tun = null;
         }
+        try {
+            ConnectivityManager cm = getSystemService(ConnectivityManager.class);
+            if (cm != null) cm.bindProcessToNetwork(null);
+        } catch (Throwable ignored) {}
         if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE);
         else stopForeground(true);
         stopSelf();
