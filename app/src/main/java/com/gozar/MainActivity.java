@@ -3,21 +3,27 @@ package com.gozar.vpn;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
 import android.net.VpnService;
 import android.os.Build;
 import android.os.Bundle;
 import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 
 public class MainActivity extends Activity {
     public static final int VPN_REQUEST = 7;
+    private static final int FILE_CHOOSER = 11;
     private WebView web;
     private static MainActivity instance;
     private volatile String pendingConfigPath;
+    private ValueCallback<Uri[]> filePathCallback;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -29,12 +35,29 @@ public class MainActivity extends Activity {
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
-        s.setDomStorageEnabled(true); // ذخیرهٔ کانفیگ‌های پنل (localStorage)
+        s.setDomStorageEnabled(true);
 
         web.setBackgroundColor(0xFF0A0F0D);
         web.setWebViewClient(new WebViewClient());
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb,
+                                             FileChooserParams p) {
+                if (filePathCallback != null) filePathCallback.onReceiveValue(null);
+                filePathCallback = cb;
+                try {
+                    startActivityForResult(p.createIntent(), FILE_CHOOSER);
+                    return true;
+                } catch (Exception e) {
+                    filePathCallback = null;
+                    return false;
+                }
+            }
+        });
         web.addJavascriptInterface(new Bridge(), "GozarAndroid");
         web.loadUrl("file:///android_asset/index.html");
+
+        copyGeoAssets();
 
         if (Build.VERSION.SDK_INT >= 33)
             requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1);
@@ -42,7 +65,25 @@ public class MainActivity extends Activity {
 
     public static MainActivity getInstance() { return instance; }
 
-    /** پل جاوااسکریپت ↔ جاوا — پنل با window.GozarAndroid صدایش می‌زند */
+    /** فایل‌های geo را از assets به حافظهٔ داخلی کپی می‌کند تا هسته قواعد ایران را داشته باشد */
+    private void copyGeoAssets() {
+        try {
+            for (String f : new String[]{"geoip.dat", "geosite.dat"}) {
+                File out = new File(getFilesDir(), f);
+                if (out.exists() && out.length() > 0) continue;
+                InputStream in = getAssets().open(f);
+                FileOutputStream fo = new FileOutputStream(out);
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = in.read(buf)) > 0) fo.write(buf, 0, n);
+                fo.close();
+                in.close();
+            }
+        } catch (Exception e) {
+            android.util.Log.w("GozarCore", "geo assets: " + e);
+        }
+    }
+
     class Bridge {
         @JavascriptInterface
         public String startVpn(String configJson) {
@@ -55,7 +96,6 @@ public class MainActivity extends Activity {
 
                 final Intent prep = VpnService.prepare(MainActivity.this);
                 if (prep != null) {
-                    // دیالوگ مجوز باید روی UI Thread باز شود
                     runOnUiThread(() -> startActivityForResult(prep, VPN_REQUEST));
                     return "ask";
                 }
@@ -74,9 +114,10 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public String vpnStatus() {
-            return GozarVpnService.currentState;
-        }
+        public String vpnStatus() { return GozarVpnService.currentState; }
+
+        @JavascriptInterface
+        public String coreLog() { return CoreBridge.getLog(); }
     }
 
     void startVpnService() {
@@ -89,7 +130,13 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         if (req == VPN_REQUEST) {
-            if (res == RESULT_OK) startVpnService(); // مجوز داده شد → تونل
+            if (res == RESULT_OK) startVpnService();
+        } else if (req == FILE_CHOOSER) {
+            if (filePathCallback != null) {
+                filePathCallback.onReceiveValue(
+                        WebChromeClient.FileChooserParams.parseResult(res, data));
+                filePathCallback = null;
+            }
         } else super.onActivityResult(req, res, data);
     }
 
