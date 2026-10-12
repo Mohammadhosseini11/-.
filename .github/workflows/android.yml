@@ -27,14 +27,12 @@ jobs:
           curl -fL --retry 3 -o app/src/main/assets/geosite.dat \
             "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
 
-      # ═══ اصلاح: به‌جای git clone ناشناس (که در CI با
-      # «could not read Username … exit code 128» شکست می‌خورد)
-      # از actions/checkout با توکن داخلی GitHub استفاده می‌شود.
-      # submodules: recursive کتابخانهٔ lwip hev را هم می‌آورد.
+      # ═══ دریافت پل TUN — نام درست مخزن: heiher/hev-socks5-tunnel
+      # (نسخهٔ قبلی «hev/…» غلط بود و 404 Not Found می‌داد)
       - name: دریافت hev-socks5-tunnel (با ساب‌ماژول‌ها)
         uses: actions/checkout@v4
         with:
-          repository: hev/hev-socks5-tunnel
+          repository: heiher/hev-socks5-tunnel
           path: third_party/hev-socks5-tunnel
           submodules: recursive
 
