@@ -1,16 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================
 # بیلد hev-socks5-tunnel با تشخیص خودکار روش
-#   مسیر ۱: android/build.sh رسمی مخزن hev
-#   مسیر ۲: CMakeLists.txt
-#   مسیر ۳: ndk-build (jni/Android.mk)
-# خروجی: hev-out/<ABI>/*.a یا *.so
-#
-# متغیرهای محیطی:
-#   NDK_PATH یا ANDROID_NDK_HOME  — مسیر NDK (الزامی)
-#   HEV_DIR   (پیش‌فرض third_party/hev-socks5-tunnel)
-#   OUT_DIR   (پیش‌فرض hev-out)
-#   ABIS      (پیش‌فرض "arm64-v8a armeabi-v7a x86_64")
+#   مسیر ۱: android/build.sh رسمی (نسخه‌های قدیمی)
+#   مسیر ۲: ndk-build با Android.mk در ریشه (نسخه‌های فعلی hev)
+#   مسیر ۳: ndk-build با android/jni/Android.mk (نسخه‌های قدیمی)
+#   مسیر ۴: CMakeLists.txt
+# خروجی: hev-out/<ABI>/*.so یا *.a
 # =============================================================
 set -e
 
@@ -24,7 +19,7 @@ if [ -z "$NDK" ] || [ ! -d "$NDK" ]; then
   exit 1
 fi
 if [ ! -d "$HEV" ]; then
-  echo "FATAL: پوشهٔ $HEV وجود ندارد — ابتدا مخزن hev را دریافت کنید"
+  echo "FATAL: پوشهٔ $HEV وجود ندارد"
   exit 1
 fi
 export ANDROID_NDK_HOME="$NDK"
@@ -32,11 +27,14 @@ export ANDROID_NDK_HOME="$NDK"
 echo "== hev: init submodules =="
 (cd "$HEV" && git submodule update --init --recursive) || true
 
+echo "== hev: فایل‌های بیلد موجود =="
+ls -la "$HEV"/*.mk "$HEV"/Makefile "$HEV"/Android.mk 2>/dev/null || true
+
 built=0
 
-# ── مسیر ۱: build.sh رسمی ──
+# ── مسیر ۱: build.sh رسمی (قدیمی) ──
 if [ "$built" -eq 0 ] && [ -f "$HEV/android/build.sh" ]; then
-  echo "== مسیر ۱: build.sh رسمی hev =="
+  echo "== مسیر ۱: android/build.sh =="
   chmod +x "$HEV/android/build.sh"
   ok=1
   for A in $ABIS; do
@@ -45,11 +43,47 @@ if [ "$built" -eq 0 ] && [ -f "$HEV/android/build.sh" ]; then
   [ "$ok" -eq 1 ] && built=1
 fi
 
-# ── مسیر ۲: CMake ──
+# ── مسیر ۲: ndk-build با Android.mk در ریشه (ساختار فعلی hev) ──
+if [ "$built" -eq 0 ] && [ -f "$HEV/Android.mk" ]; then
+  echo "== مسیر ۲: ndk-build با Android.mk ریشه =="
+  APPMK=""
+  if [ -f "$HEV/Application.mk" ]; then APPMK="$HEV/Application.mk"; fi
+  ok=1
+  for A in $ABIS; do
+    ( cd "$HEV" && "$NDK/ndk-build" -B \
+        NDK_PROJECT_PATH="$HEV" \
+        NDK_APPLICATION_MK="${APMK:-$HEV/Android.mk}" \
+        APP_BUILD_SCRIPT="$HEV/Android.mk" \
+        NDK_OUT="$HEV/obj-$A" NDK_LIBS_OUT="$HEV/libs-$A" \
+        "APP_ABI:=$A" \
+        "APP_STL:=none" ) || { ok=0; break; }
+    mkdir -p "$OUT/$A"
+    find "$HEV/libs-$A/$A" -name "*.so" -exec cp {} "$OUT/$A/" \; 2>/dev/null || true
+  done
+  [ "$ok" -eq 1 ] && built=1
+fi
+
+# ── مسیر ۳: ndk-build با android/jni/Android.mk (قدیمی) ──
+if [ "$built" -eq 0 ] && [ -f "$HEV/android/jni/Android.mk" ]; then
+  echo "== مسیر ۳: android/jni/Android.mk =="
+  ( cd "$HEV/android" && "$NDK/ndk-build" \
+      NDK_PROJECT_PATH=. \
+      NDK_APPLICATION_MK="$PWD/jni/Application.mk" \
+      APP_BUILD_SCRIPT="$PWD/jni/Android.mk" \
+      NDK_OUT="$PWD/obj" NDK_LIBS_OUT="$PWD/libs" ) && built=1
+  if [ "$built" -eq 1 ]; then
+    for A in $ABIS; do
+      mkdir -p "$OUT/$A"
+      find "$HEV/android/libs/$A" -name "*.so" -exec cp {} "$OUT/$A/" \; 2>/dev/null || true
+    done
+  fi
+fi
+
+# ── مسیر ۴: CMake ──
 if [ "$built" -eq 0 ]; then
   CML=$(find "$HEV" -maxdepth 2 -name CMakeLists.txt 2>/dev/null | head -1 || true)
   if [ -n "$CML" ]; then
-    echo "== مسیر ۲: CMake ($(dirname "$CML")) =="
+    echo "== مسیر ۴: CMake ($(dirname "$CML")) =="
     for A in $ABIS; do
       cmake -S "$(dirname "$CML")" -B "build-hev/$A" \
         -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
@@ -61,36 +95,24 @@ if [ "$built" -eq 0 ]; then
   fi
 fi
 
-# ── مسیر ۳: ndk-build ──
-if [ "$built" -eq 0 ] && [ -f "$HEV/android/jni/Android.mk" ]; then
-  echo "== مسیر ۳: ndk-build =="
-  ( cd "$HEV/android" && "$NDK/ndk-build" \
-      NDK_PROJECT_PATH=. \
-      NDK_APPLICATION_MK="$PWD/jni/Application.mk" \
-      APP_BUILD_SCRIPT="$PWD/jni/Android.mk" \
-      NDK_OUT="$PWD/obj" NDK_LIBS_OUT="$PWD/libs" ) && built=1
-fi
-
 if [ "$built" -ne 1 ]; then
-  echo "!! هیچ روش بیلد برای hev کار نکرد — ساختار مخزن:"
-  find "$HEV" -maxdepth 2 | head -80
+  echo "!! هیچ روش بیلد کار نکرد"
   exit 1
 fi
 
-# ── جمع‌آوری خروجی‌ها به تفکیک ABI ──
-rm -rf "$OUT" && mkdir -p "$OUT"
+# ── اگر مسیر ۲ بود خروجی‌ها را از libs-ABI هم جمع کن ──
 for A in $ABIS; do
   mkdir -p "$OUT/$A"
-  ( find "$HEV" "build-hev/$A" -path "*$A*" \( -name "*.a" -o -name "*.so" \) \
-      -exec cp {} "$OUT/$A/" \; 2>/dev/null ) || true
+  find "$HEV/libs-$A/$A" -name "*.so" -exec cp {} "$OUT/$A/" \; 2>/dev/null || true
+  find "$HEV/android/libs/$A" -name "*.so" -exec cp {} "$OUT/$A/" \; 2>/dev/null || true
 done
 
 echo "== خروجی‌های hev =="
 find "$OUT" -type f | sort
 N=$(find "$OUT" -type f | wc -l)
 if [ "$N" -eq 0 ]; then
-  echo "!! هیچ .a/.so از hev پیدا نشد — جستجوی گسترده:"
-  find "$HEV" -name "*.a" -o -name "*.so" | head -40
+  echo "!! هیچ .a/.so پیدا نشد"
+  find "$HEV" -name "*.so" -o -name "*.a" | head -40
   exit 1
 fi
 echo "hev build OK ✓"
