@@ -1,9 +1,13 @@
 package com.gozar.vpn;
 
+import android.os.Build;
 import android.util.Log;
 import dalvik.system.DexFile;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -14,23 +18,18 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * پل بازتابی به هستهٔ Xray:
- *  - InitV2Env (محیط فایل‌های geo)
- *  - اجرای هسته با JSON
- *  - واسط پشتیبانی (protect / onFatalError) با پراکسی داینامیک
- *  - پل TUN با TunBridge (hev) و فالبک به پل بومی AAR
- *  - حذف خودکار قواعد geosite/geoip اگر فایل dat موجود نباشد
- *  - بافر لاگ حلقه‌ای برای نمایش داخل اپ
+ * پل بازتابی به هستهٔ Xray + لاگ پایدار (فایلی — بعد از کرش هم باقی می‌ماند)
  */
 public final class CoreBridge {
     private static final String TAG = "GozarCore";
     private static final StringBuilder ring = new StringBuilder();
     private static int ringCount = 0;
+    private static String sLogPath = null;
 
-    private static Object point;                       // v2ray.V2RayPoint instance
-    private static Method startMethod, stopMethod;     // runV2Ray / stopV2Ray
-    private static Method loopStart, loopStop;         // پل بومی AAR (در صورت وجود)
-    private static Method initEnv;                     // InitV2Env
+    private static Object point;
+    private static Method startMethod, stopMethod;
+    private static Method loopStart, loopStop;
+    private static Method initEnv;
     private static boolean running = false;
     private static String  sApkPath = null;
 
@@ -38,21 +37,54 @@ public final class CoreBridge {
 
     public static void setApkPath(String p) { sApkPath = p; }
 
-    private static void log(String m) {
+    /** ثبت لاگ — حلقوی + فایل (public چون سرویس هم در کرش از آن استفاده می‌کند) */
+    public static void log(String m) {
         Log.i(TAG, m);
         synchronized (ring) {
             if (ringCount < 200) { ring.append(m).append('\n'); ringCount++; }
+            if (sLogPath != null) {
+                try {
+                    PrintWriter w = new PrintWriter(new FileWriter(sLogPath, true));
+                    w.println(m);
+                    w.close();
+                } catch (Throwable ignored) {}
+            }
         }
     }
+
     public static String getLog() { synchronized (ring) { return ring.toString(); } }
 
-    /* ═══════════════ شروع تونل ═══════════════ */
+    /** بارگذاری لاگ جلسهٔ قبلی (حتی بعد از کرش تاریخچه هست) */
+    private static void loadPrev(String logPath) {
+        try {
+            File f = new File(logPath);
+            if (!f.exists()) return;
+            BufferedReader r = new BufferedReader(new FileReader(f));
+            String line;
+            while ((line = r.readLine()) != null && ringCount < 200) {
+                ring.append(line).append('\n');
+                ringCount++;
+            }
+            r.close();
+            if (ringCount > 0) log("─── جلسهٔ قبلی ↑ ───");
+        } catch (Throwable ignored) {}
+    }
 
-    public static void start(String configJson, int tunFd, String filesDir) throws Exception {
+    /* ═══════════ شروع تونل ═══════════ */
+
+    public static void start(String configJson, int tunFd, String filesDir, String nativeDir) throws Exception {
         if (running) stop();
+
+        sLogPath = filesDir + "/gozar-core.log";
+        loadPrev(sLogPath);
+        log("device ABI: " + Build.SUPPORTED_ABIS[0] + " · arch: " + System.getProperty("os.arch"));
+        log("native dir: " + nativeDir);
+        log("libgozar-tun.so: " + new File(nativeDir, "libgozar-tun.so").exists()
+                + " · libhev-socks5-tunnel.so: " + new File(nativeDir, "libhev-socks5-tunnel.so").exists());
+        log("TunBridge: " + TunBridge.status());
+
         discover();
 
-        /* ۱) محیط فایل‌های geo (در صورت وجود در AAR) */
         if (initEnv != null) {
             try {
                 Class<?>[] ps = initEnv.getParameterTypes();
@@ -62,16 +94,14 @@ public final class CoreBridge {
                 log("InitV2Env ok: " + n(initEnv));
             } catch (Throwable t) { log("InitV2Env failed: " + t); }
         } else {
-            log("InitV2Env not found in AAR (ok if dat files absent)");
+            log("InitV2Env not found in AAR");
         }
 
-        /* ۲) اگر dat نداریم، قواعد geosite/geoip را بردار تا هسته حتماً استارت شود */
         boolean geoOk = new File(filesDir, "geoip.dat").exists()
                      && new File(filesDir, "geosite.dat").exists();
         if (!geoOk) configJson = sanitize(configJson);
         else log("geo dat files present");
 
-        /* ۳) ثبت واسط پشتیبانی (protect / onFatalError / emitStatus) */
         try {
             Method setter = findSupportSetter(point.getClass());
             if (setter != null) {
@@ -81,11 +111,10 @@ public final class CoreBridge {
                 setter.invoke(point, proxy);
                 log("support bound: " + setter.getName() + " (" + itf.getName() + ")");
             } else {
-                log("support setter NOT found (protect may fail)");
+                log("support setter NOT found");
             }
         } catch (Throwable t) { log("support bind failed: " + t); }
 
-        /* ۴) اجرای هسته */
         if (startMethod == null) throw new Exception("core start method not found in AAR");
         try {
             startMethod.invoke(point, configJson);
@@ -95,11 +124,10 @@ public final class CoreBridge {
             throw new Exception("core start failed: " + c);
         }
 
-        /* ۵) پل TUN: اول hev؛ اگر نبود، پل بومی AAR */
         String yaml = filesDir + "/hev.yaml";
         try { writeYaml(yaml); } catch (Throwable t) { throw new Exception("write hev.yaml: " + t); }
-        int r = -1;
-        try { r = TunBridge.start(yaml, tunFd); } catch (Throwable t) { log("hev load/start: " + t); }
+        int r = -999;
+        try { r = TunBridge.start(yaml, tunFd); } catch (Throwable t) { log("hev start threw: " + t); }
         if (r == 0) {
             log("hev TUN bridge started (fd=" + tunFd + ")");
         } else if (loopStart != null) {
@@ -113,7 +141,7 @@ public final class CoreBridge {
         running = true;
     }
 
-    /* ═══════════════ توقف ═══════════════ */
+    /* ═══════════ توقف ═══════════ */
 
     public static void stop() {
         if (!running) return;
@@ -134,7 +162,7 @@ public final class CoreBridge {
         log("core stopped");
     }
 
-    /* ═══════════════ کشف API ═══════════════ */
+    /* ═══════════ کشف API ═══════════ */
 
     private static void discover() throws Exception {
         if (point != null && startMethod != null) return;
@@ -153,11 +181,9 @@ public final class CoreBridge {
                     && !n.contains("loop")) stopMethod = m;
         }
 
-        /* کلاس‌های شناخته‌شده */
         scanClass(classFor("v2ray.Libv2ray"));
         scanClass(classFor("v2ray.Tun2Socks"));
 
-        /* جستجوی سراسری در همهٔ کلاس‌های v2ray.* برای initv2env/startloop */
         if (sApkPath != null) {
             try {
                 DexFile dex = new DexFile(sApkPath);
@@ -225,8 +251,6 @@ public final class CoreBridge {
         return m == null ? "null" : m.getDeclaringClass().getSimpleName() + "." + m.getName();
     }
 
-    /* ═══════════════ پراکسی پشتیبانی ═══════════════ */
-
     private static Method findSupportSetter(Class<?> pc) {
         for (Method m : pc.getMethods()) {
             Class<?>[] ps = m.getParameterTypes();
@@ -287,8 +311,6 @@ public final class CoreBridge {
         return null;
     }
 
-    /* ═══════════════ فالبک پل AAR ═══════════════ */
-
     private static Object[] loopArgs(Method m, int tunFd) {
         Class<?>[] ps = m.getParameterTypes();
         Object[] a = new Object[ps.length];
@@ -315,13 +337,11 @@ public final class CoreBridge {
         return false;
     }
 
-    /* ═══════════════ کمکی ═══════════════ */
-
+    /* yaml حداقلی — کمترین ریسک پارس برای hev */
     private static void writeYaml(String path) throws Exception {
         String yaml = "tunnel:\n"
                     + "  mtu: 8500\n"
                     + "  ipv4: 26.26.26.1\n"
-                    + "  ipv6: 'fdfe:dcba:9876::1'\n"
                     + "socks5:\n"
                     + "  address: 127.0.0.1\n"
                     + "  port: 10808\n"
@@ -333,7 +353,7 @@ public final class CoreBridge {
         w.close();
     }
 
-    /** حذف قواعد دارای geosite:/geoip: تا هسته بدون فایل dat استارت شود */
+    /** حذف قواعد geosite/geoip در نبود فایل dat */
     private static String sanitize(String json) {
         try {
             JSONObject cfg = new JSONObject(json);
