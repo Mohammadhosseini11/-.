@@ -18,7 +18,12 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * پل بازتابی به هستهٔ Xray + لاگ پایدار (فایلی — بعد از کرش هم باقی می‌ماند)
+ * پل بازتابی به هستهٔ Xray:
+ *  - لاگ حلقه‌ای + ذخیرهٔ فایل (حتی بعد از کرش باقی می‌ماند)
+ *  - InitV2Env / اجرای هسته / پراکسی protect-fatal
+ *  - پل TUN با TunBridge (hev) + فالبک پل بومی AAR
+ *  - hev.yaml با MTU / سطح لاگ / تایم‌اوت‌ها از gozar-vpn.json
+ *  - حذف خودکار قواعد geo اگر فایل dat نباشد
  */
 public final class CoreBridge {
     private static final String TAG = "GozarCore";
@@ -37,7 +42,6 @@ public final class CoreBridge {
 
     public static void setApkPath(String p) { sApkPath = p; }
 
-    /** ثبت لاگ — حلقوی + فایل (public چون سرویس هم در کرش از آن استفاده می‌کند) */
     public static void log(String m) {
         Log.i(TAG, m);
         synchronized (ring) {
@@ -54,7 +58,7 @@ public final class CoreBridge {
 
     public static String getLog() { synchronized (ring) { return ring.toString(); } }
 
-    /** بارگذاری لاگ جلسهٔ قبلی (حتی بعد از کرش تاریخچه هست) */
+    /** بارگذاری لاگ جلسهٔ قبلی (بعد از کرش، تاریخچه حفظ می‌شود) */
     private static void loadPrev(String logPath) {
         try {
             File f = new File(logPath);
@@ -125,7 +129,7 @@ public final class CoreBridge {
         }
 
         String yaml = filesDir + "/hev.yaml";
-        try { writeYaml(yaml); } catch (Throwable t) { throw new Exception("write hev.yaml: " + t); }
+        try { writeYaml(yaml, filesDir); } catch (Throwable t) { throw new Exception("write hev.yaml: " + t); }
         int r = -999;
         try { r = TunBridge.start(yaml, tunFd); } catch (Throwable t) { log("hev start threw: " + t); }
         if (r == 0) {
@@ -251,6 +255,8 @@ public final class CoreBridge {
         return m == null ? "null" : m.getDeclaringClass().getSimpleName() + "." + m.getName();
     }
 
+    /* ═══════════ پراکسی پشتیبانی ═══════════ */
+
     private static Method findSupportSetter(Class<?> pc) {
         for (Method m : pc.getMethods()) {
             Class<?>[] ps = m.getParameterTypes();
@@ -311,6 +317,8 @@ public final class CoreBridge {
         return null;
     }
 
+    /* ═══════════ فالبک پل AAR ═══════════ */
+
     private static Object[] loopArgs(Method m, int tunFd) {
         Class<?>[] ps = m.getParameterTypes();
         Object[] a = new Object[ps.length];
@@ -337,23 +345,44 @@ public final class CoreBridge {
         return false;
     }
 
-    /* yaml حداقلی — کمترین ریسک پارس برای hev */
-    private static void writeYaml(String path) throws Exception {
-        String yaml = "tunnel:\n"
-                    + "  mtu: 8500\n"
-                    + "  ipv4: 26.26.26.1\n"
-                    + "socks5:\n"
-                    + "  address: 127.0.0.1\n"
-                    + "  port: 10808\n"
-                    + "  udp: 'udp'\n"
-                    + "misc:\n"
-                    + "  log-level: warn\n";
+    /* ═══════════ hev.yaml — با پارامترهای پنل ═══════════ */
+
+    private static void writeYaml(String path, String filesDir) throws Exception {
+        int mtu = 8500;
+        String lvl = "warn";
+        String tos = "300,60";
+        int port = 10808;
+        try {
+            File vf = new File(filesDir, "gozar-vpn.json");
+            if (vf.exists()) {
+                BufferedReader r = new BufferedReader(new FileReader(vf));
+                StringBuilder sb = new StringBuilder(); String line;
+                while ((line = r.readLine()) != null) sb.append(line);
+                r.close();
+                JSONObject v = new JSONObject(sb.toString());
+                int m = v.optInt("mtu", 0);
+                if (m >= 1280 && m <= 9000) mtu = m;
+                lvl = v.optString("hevLogLevel", "warn");
+                tos = v.optString("hevTimeouts", "300,60");
+                port = v.optInt("socksPort", 10808);
+            }
+        } catch (Throwable ignored) {}
+        StringBuilder y = new StringBuilder();
+        y.append("tunnel:\n  mtu: ").append(mtu).append("\n  ipv4: 26.26.26.1\n");
+        y.append("socks5:\n  address: 127.0.0.1\n  port: ").append(port).append("\n  udp: 'udp'\n");
+        y.append("misc:\n  log-level: ").append(lvl).append('\n');
+        try {
+            String[] p = tos.split(",");
+            if (p.length >= 1) y.append("  idle_timeout: ").append(p[0].trim()).append('\n');
+            if (p.length >= 2) y.append("  udp_timeout: ").append(p[1].trim()).append('\n');
+        } catch (Throwable ignored) {}
         FileWriter w = new FileWriter(path);
-        w.write(yaml);
+        w.write(y.toString());
         w.close();
     }
 
-    /** حذف قواعد geosite/geoip در نبود فایل dat */
+    /* ═══════════ پاک‌سازی قواعد geo ═══════════ */
+
     private static String sanitize(String json) {
         try {
             JSONObject cfg = new JSONObject(json);
