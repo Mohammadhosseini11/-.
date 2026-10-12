@@ -37,58 +37,95 @@ jobs:
           fi
           echo "NDK_PATH=$NDK" >> $GITHUB_ENV
 
-      # ═══ هستهٔ Xray: دانلود هوشمند → در صورت نامعتبری، بازسازی از سورس ═══
-      - name: دانلود / بازسازی هستهٔ Xray (AAR)
+      # ═══ هستهٔ Xray: wrapper اختصاصی خودمان دور xtls/xray-core ═══
+      # (بدون هیچ وابستگی به AAR بیرونی — همیشه یکسان ساخته می‌شود)
+      - name: ساخت هستهٔ Xray (gomobile)
         run: |
           set -e
-          mkdir -p app/libs
-          echo "== تلاش ۱: دانلود AAR از آخرین Release (از طریق API) =="
-          URL=$(curl -s https://api.github.com/repos/2dust/AndroidLibXrayLite/releases/latest \
-                | grep -o '"browser_download_url": *"[^"]*\.aar"' | head -1 | cut -d'"' -f4 || true)
-          echo "asset URL: $URL"
-          if [ -n "$URL" ]; then
-            curl -fL --retry 3 -o app/libs/libv2ray.aar "$URL" || true
-          fi
-          SIZE=$(stat -c%s app/libs/libv2ray.aar 2>/dev/null || echo 0)
-          echo "AAR size: $SIZE bytes"
-          OK=0
-          if [ "$SIZE" -gt 2000000 ]; then
-            rm -rf /tmp/aarx && mkdir -p /tmp/aarx
-            if unzip -o -q app/libs/libv2ray.aar classes.jar -d /tmp/aarx 2>/dev/null; then
-              if unzip -l /tmp/aarx/classes.jar | grep -qi "V2RayPoint"; then OK=1; fi
-            fi
-          fi
+          export ANDROID_NDK_HOME=$NDK_PATH
+          export PATH=$PATH:$(go env GOPATH)/bin
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
+          gomobile init
 
-          if [ "$OK" -ne 1 ]; then
-            echo "== تلاش ۲: بازسازی از سورس با gomobile =="
-            echo "   نکته: پکیج گو در پوشهٔ libv2ray/ است (نه ریشهٔ مخزن)"
-            rm -f app/libs/libv2ray.aar
-            export ANDROID_NDK_HOME=$NDK_PATH
-            export PATH=$PATH:$(go env GOPATH)/bin
-            go install golang.org/x/mobile/cmd/gomobile@latest
-            go install golang.org/x/mobile/cmd/gobind@latest
-            gomobile init
-            git clone --depth 1 https://github.com/2dust/AndroidLibXrayLite core-src
-            cd core-src
-            go mod download
-            set -o pipefail
-            # ═══ دستور درست: bind پکیج libv2ray (نه ریشهٔ مخزن) ═══
-            gomobile bind -v -target=android -androidapi 24 \
-              -ldflags='-s -w' -o ../app/libs/libv2ray.aar ./libv2ray \
-              2>&1 | tee gomobile.log
-            cd ..
-          fi
+          mkdir -p core-src && cd core-src
+          cat > go.mod <<'EOF'
+          module gozar
 
-          # اعتبارسنجی نهایی — با پیام شفاف
+          go 1.23
+          EOF
+          cat > gozar.go <<'EOF'
+          package gozar
+
+          import (
+              "os"
+              "strings"
+
+              "github.com/xtls/xray-core/core"
+              _ "github.com/xtls/xray-core/main/distro/all"
+              "github.com/xtls/xray-core/infra/conf/serial"
+          )
+
+          // V2RayPoint — سازگار با پل بازتابی جاوا
+          type V2RayPoint struct {
+              server  *core.Instance
+              running bool
+          }
+
+          func NewV2RayPoint() *V2RayPoint { return &V2RayPoint{} }
+
+          func (p *V2RayPoint) RunV2Ray(config string) error {
+              if p.running {
+                  return nil
+              }
+              cf, err := serial.DecodeJSONConfig(strings.NewReader(config))
+              if err != nil {
+                  return err
+              }
+              pb, err := cf.Build()
+              if err != nil {
+                  return err
+              }
+              inst, err := core.New(pb)
+              if err != nil {
+                  return err
+              }
+              if err = inst.Start(); err != nil {
+                  return err
+              }
+              p.server = inst
+              p.running = true
+              return nil
+          }
+
+          func (p *V2RayPoint) StopV2Ray() {
+              if p.server != nil {
+                  p.server.Close()
+                  p.server = nil
+              }
+              p.running = false
+          }
+
+          func (p *V2RayPoint) IsRunning() bool { return p.running }
+
+          // InitV2Env — مسیر فایل‌های geo را برای هسته تنظیم می‌کند
+          func InitV2Env(assetPath string) {
+              os.Setenv("XRAY_LOCATION_ASSET", assetPath)
+              os.Setenv("V2RAY_LOCATION_ASSET", assetPath)
+          }
+          EOF
+          go mod tidy
+          echo "== گو ساخته شد — bind با gomobile (۵-۱۰ دقیقه) =="
+          gomobile bind -v -target=android -androidapi 24 \
+            -ldflags='-s -w' -o ../app/libs/libv2ray.aar ./
+          cd ..
+
           rm -rf /tmp/aarv && mkdir -p /tmp/aarv
-          if ! unzip -o -q app/libs/libv2ray.aar classes.jar -d /tmp/aarv; then
-            echo "FATAL: فایل AAR قابل بازشدن نیست — لاگ gomobile.log را ببینید"
-            exit 1
-          fi
-          echo "==== کلاس‌های v2ray داخل AAR ===="
-          unzip -l /tmp/aarv/classes.jar | grep -i -E "v2ray|V2RayPoint" | head -30 || true
+          unzip -o -q app/libs/libv2ray.aar classes.jar -d /tmp/aarv
+          echo "==== کلاس‌های داخل AAR ===="
+          unzip -l /tmp/aarv/classes.jar | grep -i -E "gozar|V2RayPoint" | head -20 || true
           if ! unzip -l /tmp/aarv/classes.jar | grep -qi "V2RayPoint"; then
-            echo "FATAL: V2RayPoint در AAR نیست — لاگ gomobile.log را ببینید"
+            echo "FATAL: V2RayPoint در AAR نیست"
             exit 1
           fi
           echo "AAR OK ✓"
@@ -154,9 +191,7 @@ jobs:
           echo "== خروجی‌های hev =="
           find hev-out -type f | sort
           N=$(find hev-out -type f | wc -l)
-          if [ "$N" -eq 0 ]; then
-            echo "!! هیچ .a/.so از hev پیدا نشد"; exit 1
-          fi
+          if [ "$N" -eq 0 ]; then echo "!! هیچ .a/.so از hev پیدا نشد"; exit 1; fi
 
       - name: بیلد پل JNI (gozar-tun)
         run: |
@@ -188,8 +223,7 @@ jobs:
           set -e
           for ABI in arm64-v8a armeabi-v7a x86_64; do
             if [ ! -f "app/src/main/jniLibs/$ABI/libgozar-tun.so" ]; then
-              echo "FATAL: libgozar-tun.so برای $ABI وجود ندارد"
-              exit 1
+              echo "FATAL: libgozar-tun.so برای $ABI وجود ندارد"; exit 1
             fi
           done
           ls -la app/src/main/jniLibs/*/
@@ -207,15 +241,13 @@ jobs:
           gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
           test "${PIPESTATUS[0]}" -eq 0
 
-      # ═══ گزارش شکست: هر لاگی که هست را چاپ و به‌عنوان Artifact آپلود کن ═══
       - name: گزارش خطاها (در صورت شکست)
         if: failure()
         run: |
           mkdir -p faillog
-          for f in aar.log core-src/gomobile.log build.log; do
+          for f in build.log core-src/gomobile.log; do
             if [ -f "$f" ]; then
-              echo "==== انتهای $f ===="
-              tail -60 "$f" || true
+              echo "==== انتهای $f ===="; tail -60 "$f" || true
               cp "$f" faillog/ || true
             fi
           done
