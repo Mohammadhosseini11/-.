@@ -22,18 +22,15 @@ public class GozarVpnService extends VpnService {
     private static GozarVpnService inst;
     private ParcelFileDescriptor tun;
 
-    @Override
-    public void onCreate() { super.onCreate(); inst = this; }
+    @Override public void onCreate() { super.onCreate(); inst = this; }
+    @Override public void onDestroy() { inst = null; super.onDestroy(); }
 
-    @Override
-    public void onDestroy() { inst = null; super.onDestroy(); }
-
-    /** برای CoreBridge: محافظت سوکت هسته از عبور دوباره از تونل */
+    /** برای CoreBridge: سوکت‌های هسته نباید از خودِ تونل عبور کنند */
     public static boolean protectFd(int fd) {
         return inst != null && inst.protect(fd);
     }
 
-    /** اگر هسته خطای مرگبار داد، تونل را ببند */
+    /** خطای مرگبار هسته → بستن تونل */
     public static void coreFatal() {
         GozarVpnService s = inst;
         if (s != null) s.stopAll();
@@ -68,21 +65,26 @@ public class GozarVpnService extends VpnService {
             tun = b.establish();
             if (tun == null) { stopAll(); return START_NOT_STICKY; }
 
-            CoreBridge.start(readFile(path), tun.getFd());
+            CoreBridge.setApkPath(getApplicationInfo().sourceDir);
+            CoreBridge.start(readFile(path), tun.getFd(), getFilesDir().getAbsolutePath());
             currentState = "on";
         } catch (Exception e) {
+            android.util.Log.e("GozarCore", "service start failed", e);
             stopAll();
         }
         return START_STICKY;
     }
 
-    @Override
-    public void onRevoke() { stopAll(); } // کاربر از تنظیمات اندروید قطع کرد
+    @Override public void onRevoke() { stopAll(); }
 
     void stopAll() {
-        try { CoreBridge.stop(); } catch (Exception ignored) {}
-        if (tun != null) { try { tun.close(); } catch (Exception ignored) {} tun = null; }
         currentState = "off";
+        try { CoreBridge.stop(); } catch (Exception ignored) {}
+        try { TunBridge.stop(); } catch (Exception ignored) {}
+        if (tun != null) {
+            try { tun.close(); } catch (Exception ignored) {}
+            tun = null;
+        }
         if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE);
         else stopForeground(true);
         stopSelf();
