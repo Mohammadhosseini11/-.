@@ -47,89 +47,30 @@ jobs:
           gomobile init
           echo "gomobile: $(gomobile version 2>/dev/null || echo ok)"
 
-      - name: آماده‌سازی wrapper هسته (gozar)
+      # ═══ wrapper از فایل‌های خود ریپو کپی می‌شود ═══
+      - name: آماده‌سازی wrapper هسته (از core-src ریپو)
         run: |
           set -e
-          mkdir -p core-src && cd core-src
-          cat > go.mod <<'EOF'
-          module gozar
+          if [ ! -f core-src/gozar.go ]; then
+            echo "FATAL: core-src/gozar.go در ریپو نیست — آن را طبق دستورالعمل کامیت کنید"
+            exit 1
+          fi
+          echo "== فایل‌های wrapper =="
+          cat core-src/go.mod
+          cat core-src/gozar.go
 
-          go 1.23
-          EOF
-          cat > gozar.go <<'EOF'
-          package gozar
-
-          import (
-              "os"
-              "strings"
-
-              "github.com/xtls/xray-core/core"
-              _ "github.com/xtls/xray-core/main/distro/all"
-              "github.com/xtls/xray-core/infra/conf/serial"
-          )
-
-          type V2RayPoint struct {
-              server  *core.Instance
-              running bool
-          }
-
-          func NewV2RayPoint() *V2RayPoint { return &V2RayPoint{} }
-
-          func (p *V2RayPoint) RunV2Ray(config string) error {
-              if p.running {
-                  return nil
-              }
-              cf, err := serial.DecodeJSONConfig(strings.NewReader(config))
-              if err != nil {
-                  return err
-              }
-              pb, err := cf.Build()
-              if err != nil {
-                  return err
-              }
-              inst, err := core.New(pb)
-              if err != nil {
-                  return err
-              }
-              if err = inst.Start(); err != nil {
-                  return err
-              }
-              p.server = inst
-              p.running = true
-              return nil
-          }
-
-          func (p *V2RayPoint) StopV2Ray() {
-              if p.server != nil {
-                  p.server.Close()
-                  p.server = nil
-              }
-              p.running = false
-          }
-
-          func (p *V2RayPoint) IsRunning() bool { return p.running }
-
-          func InitV2Env(assetPath string) {
-              os.Setenv("XRAY_LOCATION_ASSET", assetPath)
-              os.Setenv("V2RAY_LOCATION_ASSET", assetPath)
-          }
-          EOF
-          export GOTOOLCHAIN=auto
-          go mod tidy 2>&1 | tee go-tidy.log
-          echo "== go mod tidy OK =="
-
-      # ═══ ساخت هستهٔ Xray — go get بدون tidy بعدی ═══
+      # ═══ وابستگی‌ها + ساخت AAR هسته ═══
       - name: بیلد هستهٔ Xray (gomobile bind)
         run: |
           export ANDROID_NDK_HOME=$NDK_PATH
           export PATH=$PATH:$(go env GOPATH)/bin
           export GOTOOLCHAIN=auto
           cd core-src
-          # افزودن x/mobile به ماژول — مهم: بعد از این tidy نکنیم،
-          # چون tidy وابستگی import‌نشده را حذف می‌کند (علت خطای قبلی)
+          echo "== go mod tidy =="
+          go mod tidy 2>&1 | tee go-tidy.log
+          echo "== go get x/mobile (بدون tidy بعدی!) =="
           go get golang.org/x/mobile@latest
           go get golang.org/x/mobile/cmd/gobind@latest
-          echo "== بررسی go.mod =="
           grep -n "golang.org/x/mobile" go.mod || { echo "FATAL: x/mobile در go.mod ثبت نشد"; exit 1; }
           set +e
           gomobile bind -v -target=android -androidapi 24 \
@@ -140,7 +81,7 @@ jobs:
             echo "═════════════ خطای gomobile — ۸۰ خط آخر ═════════════"
             tail -80 gomobile.log
             echo "═════════════ پایان خطا ═════════════"
-            mkdir -p ../faillog && cp gomobile.log ../faillog/ 2>/dev/null || true
+            mkdir -p ../faillog && cp gomobile.log go.mod go.sum ../faillog/ 2>/dev/null || true
             exit 1
           fi
           echo "gomobile bind OK ✓"
@@ -275,7 +216,7 @@ jobs:
         run: |
           mkdir -p faillog || true
           shopt -s nullglob
-          for f in core-src/gomobile.log core-src/go-tidy.log build.log; do
+          for f in core-src/gomobile.log core-src/go-tidy.log core-src/go.mod core-src/go.sum build.log; do
             if [ -f "$f" ]; then
               echo "════ انتهای $f ════"
               tail -60 "$f" || true
