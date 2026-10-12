@@ -60,16 +60,19 @@ public class GozarVpnService extends VpnService {
             try {
                 b.addAddress("fdfe:dcba:9876::1", 126);
                 b.addRoute("::", 0);
-            } catch (Exception ignored) {}
+            } catch (Throwable ignored) {}
 
             tun = b.establish();
             if (tun == null) { stopAll(); return START_NOT_STICKY; }
 
             CoreBridge.setApkPath(getApplicationInfo().sourceDir);
-            CoreBridge.start(readFile(path), tun.getFd(), getFilesDir().getAbsolutePath());
+            CoreBridge.start(readFile(path), tun.getFd(),
+                    getFilesDir().getAbsolutePath(),
+                    getApplicationInfo().nativeLibraryDir);
             currentState = "on";
-        } catch (Exception e) {
-            android.util.Log.e("GozarCore", "service start failed", e);
+        } catch (Throwable t) {                    // حتی Error هم اپ را نمی‌بندد
+            android.util.Log.e("GozarCore", "service start failed", t);
+            try { CoreBridge.log("JAVA CRASH in service: " + t); } catch (Throwable ignored) {}
             stopAll();
         }
         return START_STICKY;
@@ -79,10 +82,10 @@ public class GozarVpnService extends VpnService {
 
     void stopAll() {
         currentState = "off";
-        try { CoreBridge.stop(); } catch (Exception ignored) {}
-        try { TunBridge.stop(); } catch (Exception ignored) {}
+        try { CoreBridge.stop(); } catch (Throwable ignored) {}
+        try { TunBridge.stop(); } catch (Throwable ignored) {}
         if (tun != null) {
-            try { tun.close(); } catch (Exception ignored) {}
+            try { tun.close(); } catch (Throwable ignored) {}
             tun = null;
         }
         if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE);
