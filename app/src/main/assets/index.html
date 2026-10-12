@@ -383,6 +383,8 @@
   <div class="dr-item" id="drSettings"><i data-lucide="settings"></i><div class="dr-txt"><b data-i18n="d_set"></b><small data-i18n="d_set_s"></small></div></div>
   <div class="dr-sep"></div>
   <div class="dr-item" id="drLogs"><i data-lucide="terminal"></i><div class="dr-txt"><b data-i18n="d_logs"></b><small data-i18n="d_logs_s"></small></div></div>
+  <!-- ═══ گام ۹-الف: آیتم جدید لاگ هسته ═══ -->
+  <div class="dr-item" id="drCoreLog"><i data-lucide="file-code"></i><div class="dr-txt"><b data-i18n="d_corelog"></b><small data-i18n="d_corelog_s"></small></div></div>
   <div class="dr-item" id="drBackup"><i data-lucide="download"></i><div class="dr-txt"><b data-i18n="d_backup"></b><small data-i18n="d_backup_s"></small></div></div>
   <div class="dr-item" id="drUpdate"><i data-lucide="refresh-cw"></i><div class="dr-txt"><b data-i18n="d_update"></b><small data-i18n="d_update_s"></small></div></div>
   <div class="dr-item" id="drAbout"><i data-lucide="info"></i><div class="dr-txt"><b data-i18n="d_about"></b><small data-i18n="d_about_s"></small></div></div>
@@ -773,7 +775,7 @@ fa:{
  hint_android:'<b>تونل واقعی فعال است</b> — ترافیک کل گوشی از هستهٔ Xray می‌گذرد. دکمهٔ پخش = قطع تونل.',
  empty_none:"هنوز کانفیگی اضافه نشده است.",empty_f:"کانفیگی با این فیلتر/گروه نیست.",b_add:"افزودن",b_free:"سرورهای رایگان",manual:"دستی",
  sc_none:"متصل نیست",sc_busy:"در حال بررسی…",sc_on:"متصل",sc_tun:"تونل فعال",sc_err:"عدم دسترسی",
- d_ver:"پنل هوشمند کانفیگ · نسخهٔ ۲٫۳",
+ d_ver:"پنل هوشمند کانفیگ · نسخهٔ ۲٫۴",
  d_subs2:"اشتراک و حجم باقی‌مانده",d_subs2_s:"نمایش مصرف/باقی‌مانده و روزهای انقضای هر اشتراک",
  d_group:"گروه‌های اشتراک",d_group_s:"دریافت سرورهای رایگان و افزودن منبع دلخواه",
  d_routing:"تنظیمات مسیریابی (ایران)",d_routing_s:"مسیر مستقیم سایت‌های ایرانی، تبلیغات و QUIC",
@@ -781,6 +783,8 @@ fa:{
  d_geo:"فایل‌های منبع جغرافیایی",d_geo_s:"دربارهٔ فایل‌های geosite/geoip مورد نیاز مسیریابی",
  d_set:"تنظیمات",d_set_s:"DNS، تایم‌اوت‌ها، پشتیبان‌گیری و زبان",
  d_logs:"گزارشات",d_logs_s:"۱۵۰ رویداد آخر برنامه",
+ /* ═══ گام ۹-ب: کلیدهای جدید ═══ */
+ d_corelog:"لاگ هستهٔ Xray",d_corelog_s:"خروجی داخلی هسته — برای عیب‌یابی تونل",
  d_backup:"پشتیبان‌گیری / بازیابی",d_backup_s:"انتقال کانفیگ‌ها بین اندروید و کامپیوتر",
  d_update:"بروزرسانی همهٔ گروه‌ها",d_update_s:"دریافت تازه از همهٔ منابع اشتراک",
  d_about:"درباره",d_about_s:"نسخه، سازنده و توضیحات برنامه",d_lang:"زبان",
@@ -837,7 +841,7 @@ ar:{
  hint_android:'<b>النفق الحقيقي نشط</b> — كل حركة الجهاز تمر عبر نواة Xray. زر التشغيل = قطع النفق.',
  empty_none:"لم تتم إضافة أي إعداد بعد.",empty_f:"لا إعدادات بهذا الفلتر/المجموعة.",b_add:"إضافة",b_free:"خوادم مجانية",manual:"يدوي",
  sc_none:"غير متصل",sc_busy:"جارٍ الفحص…",sc_on:"متصل",sc_tun:"النفق نشط",sc_err:"لا يمكن الوصول",
- d_ver:"لوحة إعدادات ذكية · الإصدار ٢٫٣",
+ d_ver:"لوحة إعدادات ذكية · الإصدار ٢٫٤",
  d_subs2:"الاشتراك والحجم المتبقي",d_subs2_s:"عرض الاستهلاك/المتبقي وأيام انتهاء كل اشتراك",
  d_group:"مجموعات الاشتراك",d_group_s:"جلب الخوادم المجانية وإضافة مصدر مخصص",
  d_routing:"إعدادات التوجيه (إيران)",d_routing_s:"المواقع الإيرانية مباشرة، الإعلانات و QUIC",
@@ -845,6 +849,8 @@ ar:{
  d_geo:"ملفات المصادر الجغرافية",d_geo_s:"حول ملفات geosite/geoip اللازمة للتوجيه",
  d_set:"الإعدادات",d_set_s:"DNS والمهل والنسخ الاحتياطي واللغة",
  d_logs:"السجلات",d_logs_s:"آخر ١٥٠ حدثاً في التطبيق",
+ /* ═══ گام ۹-ب ═══ */
+ d_corelog:"سجل النواة",d_corelog_s:"مخرجات النواة الداخلية — لتشخيص النفق",
  d_backup:"نسخ احتياطي / استعادة",d_backup_s:"نقل الإعدادات بين أندرويد والحاسوب",
  d_update:"تحديث كل المجموعات",d_update_s:"جلب جديد من كل مصادر الاشتراك",
  d_about:"حول",d_about_s:"الإصدار والمطور ووصف التطبيق",d_lang:"اللغة",
@@ -901,7 +907,7 @@ en:{
  hint_android:'<b>Real tunnel is active</b> — all device traffic goes through the Xray core. Play = disconnect.',
  empty_none:"No configs added yet.",empty_f:"No configs match this filter/group.",b_add:"Add",b_free:"Free servers",manual:"Manual",
  sc_none:"Not connected",sc_busy:"Checking…",sc_on:"Connected",sc_tun:"Tunnel active",sc_err:"Unreachable",
- d_ver:"Smart config panel · v2.3",
+ d_ver:"Smart config panel · v2.4",
  d_subs2:"Subscription & quota",d_subs2_s:"Used/remaining traffic and expiry days per subscription",
  d_group:"Subscription groups",d_group_s:"Fetch free servers and add custom sources",
  d_routing:"Routing settings (Iran)",d_routing_s:"Iran sites direct, ads blocking and QUIC",
@@ -909,6 +915,8 @@ en:{
  d_geo:"Geo resource files",d_geo_s:"About geosite/geoip files used by routing",
  d_set:"Settings",d_set_s:"DNS, timeouts, backup and language",
  d_logs:"Logs",d_logs_s:"Last 150 app events",
+ /* ═══ گام ۹-ب ═══ */
+ d_corelog:"Xray core log",d_corelog_s:"Internal core output for tunnel debugging",
  d_backup:"Backup / Restore",d_backup_s:"Transfer configs between Android & desktop",
  d_update:"Update all groups",d_update_s:"Re-fetch from all subscription sources",
  d_about:"About",d_about_s:"Version, developer and description",d_lang:"Language",
@@ -961,7 +969,7 @@ if(!I18N[LANG]) LANG='fa';
 function t(k,p){ let s=(I18N[LANG]&&I18N[LANG][k])||I18N.fa[k]||k; if(p) for(const key in p) s=s.split('{'+key+'}').join(p[key]); return s; }
 
 /* ═══════════ ابزارها ═══════════ */
-const APP_VERSION='2.3.0';
+const APP_VERSION='2.4.0';
 const $=function(s){ return document.querySelector(s); };
 const esc=function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); };
 const wait=function(ms){ return new Promise(function(r){ setTimeout(r,ms); }); };
@@ -1523,6 +1531,14 @@ click('#drDpi',function(){ closeDrawer(); openSettings('st2'); });
 click('#drGeo',function(){ closeDrawer(); openOv('#ovGeo'); icons(); });
 click('#drSettings',function(){ closeDrawer(); openSettings('st1'); });
 click('#drLogs',function(){ closeDrawer(); openLogs(); });
+/* ═══ گام ۹-ج: هندلر لاگ هسته ═══ */
+click('#drCoreLog',function(){
+  closeDrawer();
+  var txt=(window.GozarAndroid&&window.GozarAndroid.coreLog)?window.GozarAndroid.coreLog():'— (فقط داخل اپ اندروید / only inside the Android app)';
+  openConfirm(t('d_corelog'),null,
+    '<pre dir="ltr" style="max-height:320px;overflow:auto;font-family:var(--mono);font-size:10px;white-space:pre-wrap">'+esc(txt)+'</pre>',
+    t('c_close'));
+});
 click('#drBackup',function(){ closeDrawer(); openSettings('st1'); });
 click('#drUpdate',function(){ closeDrawer(); updateAllSources(); });
 click('#drAbout',function(){ closeDrawer(); openOv('#ovAbout'); icons(); });
@@ -2154,7 +2170,7 @@ click('#btnRenameOk',function(){
   closeOv($('#ovRename'));
 });
 
-/* ═══════════ مودال + تب‌ها — سیستم ضدخطا (v2.3) ═══════════ */
+/* ═══════════ مودال + تب‌ها — سیستم ضدخطا ═══════════ */
 function anyOverlayOpen(){
   return !!document.querySelector('.overlay.open, .drawer.open, .sheet.open');
 }
@@ -2178,7 +2194,7 @@ document.querySelectorAll('.overlay').forEach(function(ov){
   });
 });
 
-/* سوئیچ تب — مستقل از id مودال، هرگز خطا نمی‌دهد */
+/* سوئیچ تب — مستقل از id مودال */
 function activateTab(btn){
   try{
     if(!btn) return;
@@ -2192,7 +2208,6 @@ function activateTab(btn){
     const mb=modal.querySelector('.m-body'); if(mb) mb.scrollTop=0;
   }catch(e){}
 }
-/* لایهٔ ۱: اتصال مستقیم روی هر دکمهٔ تب */
 function bindTabs(){
   document.querySelectorAll('.tabv').forEach(function(b){
     if(b.__tabBound) return;
@@ -2200,7 +2215,6 @@ function bindTabs(){
     b.addEventListener('click',function(e){ e.stopPropagation(); activateTab(b); });
   });
 }
-/* لایهٔ ۲: شنوندهٔ سراسری — پشتیبان برای هر تبِ داینامیک آینده */
 document.addEventListener('click',function(e){
   const b=(e.target&&e.target.closest)?e.target.closest('.tabv'):null;
   if(b) activateTab(b);
