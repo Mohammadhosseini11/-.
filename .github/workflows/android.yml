@@ -118,17 +118,19 @@ jobs:
           go mod tidy 2>&1 | tee go-tidy.log
           echo "== go mod tidy OK =="
 
-      # ═══ ساخت هستهٔ Xray — با افزودن وابستگی mobile قبل از bind ═══
+      # ═══ ساخت هستهٔ Xray — go get بدون tidy بعدی ═══
       - name: بیلد هستهٔ Xray (gomobile bind)
         run: |
           export ANDROID_NDK_HOME=$NDK_PATH
           export PATH=$PATH:$(go env GOPATH)/bin
           export GOTOOLCHAIN=auto
           cd core-src
-          # رفع خطای «missing golang.org/x/mobile dependency»
-          go get golang.org/x/mobile/cmd/gobind@latest
+          # افزودن x/mobile به ماژول — مهم: بعد از این tidy نکنیم،
+          # چون tidy وابستگی import‌نشده را حذف می‌کند (علت خطای قبلی)
           go get golang.org/x/mobile@latest
-          go mod tidy || true
+          go get golang.org/x/mobile/cmd/gobind@latest
+          echo "== بررسی go.mod =="
+          grep -n "golang.org/x/mobile" go.mod || { echo "FATAL: x/mobile در go.mod ثبت نشد"; exit 1; }
           set +e
           gomobile bind -v -target=android -androidapi 24 \
             -ldflags='-s -w' -o ../app/libs/libv2ray.aar ./ 2>&1 | tee gomobile.log
