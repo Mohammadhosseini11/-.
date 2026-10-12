@@ -12,12 +12,71 @@ jobs:
       - name: دریافت سورس
         uses: actions/checkout@v4
 
-      - name: دانلود هستهٔ Xray (libv2ray.aar)
+      - name: نصب Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: نصب Go 1.22 (برای بازسازی هسته در صورت نیاز)
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: نصب Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: آماده‌سازی NDK
         run: |
+          NDK=$ANDROID_HOME/ndk/26.3.11579264
+          if [ ! -d "$NDK" ]; then
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null || true
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.3.11579264" >/dev/null
+          fi
+          echo "NDK_PATH=$NDK" >> $GITHUB_ENV
+
+      # ═══ هستهٔ Xray: دانلود → اعتبارسنجی → در صورت نامعتبر بودن، ساخت از سورس ═══
+      - name: دانلود / بازسازی هستهٔ Xray (AAR)
+        run: |
+          set -e
           mkdir -p app/libs
           curl -fL --retry 3 -o app/libs/libv2ray.aar \
-            "https://github.com/2dust/AndroidLibXrayLite/releases/latest/download/libv2ray.aar"
-          ls -la app/libs
+            "https://github.com/2dust/AndroidLibXrayLite/releases/latest/download/libv2ray.aar" || true
+          SIZE=$(stat -c%s app/libs/libv2ray.aar 2>/dev/null || echo 0)
+          echo "AAR size: $SIZE bytes"
+          OK=0
+          if [ "$SIZE" -gt 2000000 ]; then
+            rm -rf /tmp/aarx && mkdir -p /tmp/aarx
+            if unzip -o -q app/libs/libv2ray.aar classes.jar -d /tmp/aarx 2>/dev/null; then
+              if unzip -l /tmp/aarx/classes.jar | grep -qi "V2RayPoint"; then OK=1; fi
+            fi
+          fi
+          if [ "$OK" -ne 1 ]; then
+            echo "!! AAR نامعتبر است — بازسازی از سورس با gomobile (حدود ۱۰-۱۵ دقیقه)"
+            rm -f app/libs/libv2ray.aar
+            export ANDROID_NDK_HOME=$NDK_PATH
+            export PATH=$PATH:$(go env GOPATH)/bin
+            go install golang.org/x/mobile/cmd/gomobile@latest
+            go install golang.org/x/mobile/cmd/gobind@latest
+            gomobile init
+            git clone --depth 1 https://github.com/2dust/AndroidLibXrayLite core-src
+            cd core-src
+            go mod download
+            gomobile bind -v -target=android -androidapi 24 -ldflags='-s -w' -o ../app/libs/libv2ray.aar ./
+            cd ..
+          fi
+          # اعتبارسنجی نهایی — توقف با پیام شفاف در صورت شکست
+          rm -rf /tmp/aarv && mkdir -p /tmp/aarv
+          unzip -o -q app/libs/libv2ray.aar classes.jar -d /tmp/aarv
+          echo "==== کلاس‌های v2ray داخل AAR ===="
+          unzip -l /tmp/aarv/classes.jar | grep -i v2ray | head -30 || true
+          if ! unzip -l /tmp/aarv/classes.jar | grep -qi "V2RayPoint"; then
+            echo "FATAL: V2RayPoint در AAR نیست — ساخت AAR شکست خورد؛ لاگ gomobile بالا را ببینید"
+            exit 1
+          fi
+          echo "AAR OK ✓"
 
       - name: دانلود فایل‌های geo (مسیریابی ایران)
         run: |
@@ -27,19 +86,98 @@ jobs:
           curl -fL --retry 3 -o app/src/main/assets/geosite.dat \
             "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
 
-      # ═══ مرحلهٔ hev حذف شد — پل TUN از API داخلی خود AAR استفاده می‌کند
-      # (CoreBridge آن را در زمان اجرا کشف می‌کند و در «لاگ هستهٔ Xray» گزارش می‌دهد)
-
-      - name: نصب Java 17
-        uses: actions/setup-java@v4
+      - name: دریافت hev-socks5-tunnel (با ساب‌ماژول‌ها)
+        uses: actions/checkout@v4
         with:
-          distribution: temurin
-          java-version: '17'
+          repository: heiher/hev-socks5-tunnel
+          path: third_party/hev-socks5-tunnel
+          submodules: recursive
 
-      - name: نصب Gradle 8.7
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
+      - name: بیلد hev-socks5-tunnel (تشخیص خودکار روش)
+        run: |
+          set -e
+          NDK=$NDK_PATH
+          export ANDROID_NDK_HOME=$NDK
+          HEV=third_party/hev-socks5-tunnel
+          ABIS="arm64-v8a armeabi-v7a x86_64"
+          (cd $HEV && git submodule update --init --recursive) || true
+          built=0
+          if [ -f "$HEV/android/build.sh" ]; then
+            echo "== مسیر ۱: build.sh رسمی hev =="
+            chmod +x $HEV/android/build.sh
+            ( cd $HEV/android && for A in $ABIS; do ./build.sh $A || exit 1; done ) && built=1
+          fi
+          if [ $built -eq 0 ]; then
+            CML=$( ( find $HEV -maxdepth 2 -name CMakeLists.txt ) | head -1 || true )
+            if [ -n "$CML" ]; then
+              echo "== مسیر ۲: CMake در $(dirname $CML) =="
+              for A in $ABIS; do
+                cmake -S "$(dirname $CML)" -B build-hev/$A \
+                  -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
+                  -DANDROID_ABI=$A -DANDROID_PLATFORM=android-24 \
+                  -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release
+                cmake --build build-hev/$A
+              done
+              built=1
+            fi
+          fi
+          if [ $built -eq 0 ] && [ -f "$HEV/android/jni/Android.mk" ]; then
+            echo "== مسیر ۳: ndk-build =="
+            ( cd $HEV/android && $NDK/ndk-build \
+                NDK_PROJECT_PATH=. NDK_APPLICATION_MK=$PWD/jni/Application.mk \
+                APP_BUILD_SCRIPT=$PWD/jni/Android.mk \
+                NDK_OUT=$PWD/obj NDK_LIBS_OUT=$PWD/libs ) && built=1
+          fi
+          if [ $built -ne 1 ]; then
+            echo "!! ساختار مخزن hev شناخته نشد"; find $HEV -maxdepth 2 | head -80; exit 1
+          fi
+          rm -rf hev-out && mkdir -p hev-out
+          for A in $ABIS; do
+            mkdir -p hev-out/$A
+            ( find $HEV build-hev/$A -path "*$A*" \( -name "*.a" -o -name "*.so" \) -exec cp {} hev-out/$A/ \; 2>/dev/null ) || true
+          done
+          find hev-out -type f | sort
+          N=$(find hev-out -type f | wc -l)
+          if [ "$N" -eq 0 ]; then
+            echo "!! هیچ .a/.so از hev پیدا نشد"; find $HEV -name "*.a" -o -name "*.so" | head -40; exit 1
+          fi
+
+      - name: بیلد پل JNI (gozar-tun)
+        run: |
+          set -e
+          NDK=$NDK_PATH
+          for ABI in arm64-v8a armeabi-v7a x86_64; do
+            STATIC_ARG=""
+            A_FILE=$( ( find hev-out/$ABI -name "*.a" ) | head -1 || true )
+            if [ -n "$A_FILE" ]; then
+              echo "[$ABI] hev استاتیک → لینک مستقیم"
+              STATIC_ARG="-DHEV_STATIC_LIB=$PWD/$A_FILE"
+            else
+              echo "[$ABI] hev داینامیک → dlopen در زمان اجرا"
+            fi
+            cmake -S app/src/main/cpp -B build-shim/$ABI \
+              -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
+              -DANDROID_ABI=$ABI -DANDROID_PLATFORM=android-24 \
+              -DCMAKE_BUILD_TYPE=Release $STATIC_ARG
+            cmake --build build-shim/$ABI
+            mkdir -p app/src/main/jniLibs/$ABI
+            find build-shim/$ABI -name "libgozar-tun.so" -exec cp {} app/src/main/jniLibs/$ABI/ \;
+            if [ -z "$A_FILE" ]; then
+              find hev-out/$ABI -name "libhev-socks5-tunnel.so" -exec cp {} app/src/main/jniLibs/$ABI/ \; 2>/dev/null || true
+            fi
+          done
+
+      # ═══ سد ایمنی: بدون کتابخانه‌ها بیلد را متوقف کن ═══
+      - name: بررسی کتابخانه‌های نیتیو
+        run: |
+          set -e
+          for ABI in arm64-v8a armeabi-v7a x86_64; do
+            if [ ! -f "app/src/main/jniLibs/$ABI/libgozar-tun.so" ]; then
+              echo "FATAL: libgozar-tun.so برای $ABI وجود ندارد — لاگ مراحل بالا را ببینید"
+              exit 1
+            fi
+          done
+          ls -la app/src/main/jniLibs/*/
 
       - name: ساخت کلید امضا (فقط بار اول)
         if: ${{ hashFiles('gozar.jks') == '' }}
@@ -57,7 +195,7 @@ jobs:
       - name: نمایش خطاها (در صورت شکست)
         if: failure()
         run: |
-          grep -n -i -E "error:|cannot find symbol|undefined reference" build.log | head -60 || true
+          grep -n -i -E "error:|cannot find symbol|undefined reference|CMake Error" build.log | head -80 || true
 
       - name: آپلود کلید امضا (فقط بار اول — دانلود و در ریشهٔ ریپو کامیت کنید)
         if: ${{ hashFiles('gozar.jks') == '' }}
