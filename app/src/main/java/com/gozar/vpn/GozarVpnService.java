@@ -11,6 +11,8 @@ import android.os.ParcelFileDescriptor;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class GozarVpnService extends VpnService {
 
@@ -36,6 +38,25 @@ public class GozarVpnService extends VpnService {
         if (s != null) s.stopAll();
     }
 
+    /** تنظیمات VPN از پنل (gozar-vpn.json) */
+    private JSONObject readVpnParams() {
+        JSONObject v = new JSONObject();
+        try {
+            File vf = new File(getFilesDir(), "gozar-vpn.json");
+            if (vf.exists()) {
+                BufferedReader r = new BufferedReader(new FileReader(vf));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = r.readLine()) != null) sb.append(line);
+                r.close();
+                v = new JSONObject(sb.toString());
+            }
+        } catch (Throwable t) {
+            android.util.Log.w("GozarCore", "vpn params: " + t);
+        }
+        return v;
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && ACTION_STOP.equals(intent.getAction())) {
@@ -50,16 +71,43 @@ public class GozarVpnService extends VpnService {
 
         startForeground(NOTIF_ID, buildNotification());
 
+        JSONObject v = readVpnParams();
+
+        int mtu = v.optInt("mtu", 8500);
+        if (mtu < 1280 || mtu > 9000) mtu = 8500;
+        boolean ipv6 = v.optBoolean("ipv6", false);
+        String dns = v.optString("dns", "26.26.26.2");
+
         try {
             VpnService.Builder b = new Builder()
                     .setSession("گذر")
-                    .setMtu(8500)
+                    .setMtu(mtu)
                     .addAddress("26.26.26.1", 24)
-                    .addDnsServer("26.26.26.2")
+                    .addDnsServer(dns)
                     .addRoute("0.0.0.0", 0);
+            if (ipv6) {
+                try {
+                    b.addAddress("fdfe:dcba:9876::1", 126);
+                    b.addRoute("::", 0);
+                } catch (Throwable ignored) {}
+            }
+
+            /* Per-app proxy: allow / disallow */
             try {
-                b.addAddress("fdfe:dcba:9876::1", 126);
-                b.addRoute("::", 0);
+                JSONObject apps = v.optJSONObject("apps");
+                String mode = apps == null ? "none" : apps.optString("mode", "none");
+                JSONArray list = apps == null ? null : apps.optJSONArray("list");
+                if (("allow".equals(mode) || "disallow".equals(mode)) && list != null && list.length() > 0) {
+                    for (int i = 0; i < list.length(); i++) {
+                        try {
+                            String pkg = list.getString(i);
+                            if ("allow".equals(mode)) b.addAllowedApplication(pkg);
+                            else b.addDisallowedApplication(pkg);
+                        } catch (Throwable t) {
+                            android.util.Log.w("GozarCore", "per-app skip " + t);
+                        }
+                    }
+                }
             } catch (Throwable ignored) {}
 
             tun = b.establish();
@@ -70,7 +118,7 @@ public class GozarVpnService extends VpnService {
                     getFilesDir().getAbsolutePath(),
                     getApplicationInfo().nativeLibraryDir);
             currentState = "on";
-        } catch (Throwable t) {                    // حتی Error هم اپ را نمی‌بندد
+        } catch (Throwable t) {
             android.util.Log.e("GozarCore", "service start failed", t);
             try { CoreBridge.log("JAVA CRASH in service: " + t); } catch (Throwable ignored) {}
             stopAll();
