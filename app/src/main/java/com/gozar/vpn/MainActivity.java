@@ -64,7 +64,6 @@ public class MainActivity extends Activity {
 
     public static MainActivity getInstance() { return instance; }
 
-    /** فایل‌های geo از assets به حافظهٔ داخلی — برای قواعد مسیریابی ایران */
     private void copyGeoAssets() {
         try {
             for (String f : new String[]{"geoip.dat", "geosite.dat"}) {
@@ -75,8 +74,7 @@ public class MainActivity extends Activity {
                 byte[] buf = new byte[8192];
                 int n;
                 while ((n = in.read(buf)) > 0) fo.write(buf, 0, n);
-                fo.close();
-                in.close();
+                fo.close(); in.close();
             }
         } catch (Exception e) {
             android.util.Log.w("GozarCore", "geo assets: " + e);
@@ -100,12 +98,9 @@ public class MainActivity extends Activity {
                 }
                 runOnUiThread(MainActivity.this::startVpnService);
                 return "starting";
-            } catch (Exception e) {
-                return "error";
-            }
+            } catch (Exception e) { return "error"; }
         }
 
-        /** تنظیمات VPN (DNS/MTU/IPv6/per-app/hev) — پنل قبل از startVpn صدا می‌زند */
         @JavascriptInterface
         public void setVpnParams(String vpnJson) {
             try {
@@ -116,7 +111,6 @@ public class MainActivity extends Activity {
             } catch (Exception ignored) {}
         }
 
-        /** فهرست برنامه‌های نصب‌شده برای Per-app proxy */
         @JavascriptInterface
         public String getApps() {
             try {
@@ -137,8 +131,26 @@ public class MainActivity extends Activity {
                     items.add(o.toString());
                 }
                 return "[" + String.join(",", items) + "]";
+            } catch (Throwable t) { return "[]"; }
+        }
+
+        /** پینگ واقعی TCP — باز بودن درگاه، مستقل از تونل/پروتکل/CORS */
+        @JavascriptInterface
+        public String tcpPing(final String host, final int port) {
+            try {
+                final long t0 = System.currentTimeMillis();
+                final boolean[] ok = {false};
+                Thread th = new Thread(() -> {
+                    try (java.net.Socket s = new java.net.Socket()) {
+                        s.connect(new java.net.InetSocketAddress(host, port), 5000);
+                        ok[0] = true;
+                    } catch (Throwable ignored) {}
+                });
+                th.start();
+                th.join(5200);
+                return ok[0] ? ("ok," + (System.currentTimeMillis() - t0)) : "fail";
             } catch (Throwable t) {
-                return "[]";
+                return "fail";
             }
         }
 
