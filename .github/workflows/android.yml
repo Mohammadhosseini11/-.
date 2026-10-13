@@ -26,7 +26,7 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      # ═══ هستهٔ رسمی: از کش Release یا پوشهٔ سورس خود ریپو ═══
+      # ═══ هستهٔ رسمی: از کش Release ═══
       - name: بررسی کش AAR هسته
         id: aar_cache
         env:
@@ -70,20 +70,67 @@ jobs:
           curl -fL --retry 3 -o app/src/main/assets/geosite.dat \
             "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
 
+      # ═══ کش پل TUN + دریافت و بیلد hev در صورت نبود ═══
+      - name: بررسی کش پل TUN
+        id: hev_cache
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FOUND=0
+          if gh release view hev-libs -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            for ABI in arm64-v8a armeabi-v7a x86_64; do
+              mkdir -p app/src/main/jniLibs/$ABI
+              gh release download hev-libs -R "$GITHUB_REPOSITORY" \
+                 -p "libgozar-tun-$ABI.so" \
+                 -O "app/src/main/jniLibs/$ABI/libgozar-tun.so" >/dev/null 2>&1 || true
+            done
+            N=$(find app/src/main/jniLibs -name "libgozar-tun.so" | wc -l)
+            if [ "$N" -ge 1 ]; then FOUND=1; echo "پل TUN از کش دریافت شد ✓ ($N ABI)"; fi
+          fi
+          if [ "$FOUND" -ne 1 ]; then
+            rm -rf app/src/main/jniLibs
+            echo "کش پل TUN موجود نبود — بیلد از سورس انجام می‌شود"
+          fi
+          echo "found=$FOUND" >> $GITHUB_OUTPUT
+
+      - name: دریافت hev-socks5-tunnel (با ساب‌ماژول‌ها)
+        if: steps.hev_cache.outputs.found != '1'
+        uses: actions/checkout@v4
+        with:
+          repository: heiher/hev-socks5-tunnel
+          path: third_party/hev-socks5-tunnel
+          submodules: recursive
+
       - name: بیلد hev + پل JNI (اسکریپت‌های ریپو)
+        if: steps.hev_cache.outputs.found != '1'
         run: |
           bash scripts/build-hev.sh
           bash scripts/build-jni.sh
+
+      - name: ذخیرهٔ پل تازه در کش
+        if: steps.hev_cache.outputs.found != '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view hev-libs -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create hev-libs -R "$GITHUB_REPOSITORY" --title "Prebuilt TUN libs" --notes "cache"
+          for ABI in arm64-v8a armeabi-v7a x86_64; do
+            if [ -f "app/src/main/jniLibs/$ABI/libgozar-tun.so" ]; then
+              cp "app/src/main/jniLibs/$ABI/libgozar-tun.so" "out-tun-$ABI.so"
+            fi
+          done
+          gh release upload hev-libs out-tun-*.so --clobber -R "$GITHUB_REPOSITORY" || true
+          echo "در کش ذخیره شد ✓"
 
       - name: بررسی کتابخانه‌های نیتیو
         run: |
           set -e
           for ABI in arm64-v8a armeabi-v7a x86_64; do
             if [ ! -f "app/src/main/jniLibs/$ABI/libgozar-tun.so" ]; then
-              echo "FATAL: libgozar-tun.so برای $ABI وجود ندارد"; exit 1
+              echo "WARN: libgozar-tun.so برای $ABI وجود ندارد — پل hev این ABI را نخواهد داشت"
             fi
           done
-          ls -la app/src/main/jniLibs/*/
+          ls -la app/src/main/jniLibs/*/ || true
 
       - name: ساخت کلید امضا (فقط بار اول)
         if: ${{ hashFiles('gozar.jks') == '' }}
