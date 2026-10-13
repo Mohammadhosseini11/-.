@@ -18,11 +18,11 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * پل بازتابی به هستهٔ Xray:
+ * پل بازتابی به هستهٔ Xray (wrapper اختصاصی gozar.* روی xtls/xray-core):
  *  - لاگ حلقه‌ای + ذخیرهٔ فایل (حتی بعد از کرش باقی می‌ماند)
  *  - InitV2Env / اجرای هسته / پراکسی protect-fatal
  *  - پل TUN با TunBridge (hev) + فالبک پل بومی AAR
- *  - hev.yaml با MTU / سطح لاگ / تایم‌اوت‌ها / پورت SOCKS از gozar-vpn.json
+ *  - hev.yaml با MTU / سطح لاگ info / تایم‌اوت‌ها / پورت SOCKS از gozar-vpn.json
  *  - حذف خودکار قواعد geo اگر فایل dat نباشد
  */
 public final class CoreBridge {
@@ -114,7 +114,7 @@ public final class CoreBridge {
                 setter.invoke(point, proxy);
                 log("support bound: " + setter.getName() + " (" + itf.getName() + ")");
             } else {
-                log("support setter NOT found (protect(fd) handled via service callback)");
+                log("support setter NOT found — bindProcessToNetwork handles egress");
             }
         } catch (Throwable t) { log("support bind failed: " + t); }
 
@@ -391,11 +391,11 @@ public final class CoreBridge {
         return false;
     }
 
-    /* ═══════════ hev.yaml — با پارامترهای پنل (شامل IPv6 و پورت SOCKS) ═══════════ */
+    /* ═══════════ hev.yaml — با پارامترهای پنل (فقط IPv4 + log-level info) ═══════════ */
 
     private static void writeYaml(String path, String filesDir) throws Exception {
         int mtu = 8500;
-        String lvl = "warn";
+        String lvl = "info";
         String tos = "300,60";
         int port = 10808;
         try {
@@ -408,7 +408,6 @@ public final class CoreBridge {
                 JSONObject v = new JSONObject(sb.toString());
                 int m = v.optInt("mtu", 0);
                 if (m >= 1280 && m <= 9000) mtu = m;
-                lvl = v.optString("hevLogLevel", "warn");
                 tos = v.optString("hevTimeouts", "300,60");
                 port = v.optInt("socksPort", 10808);
             }
@@ -417,7 +416,6 @@ public final class CoreBridge {
         y.append("tunnel:\n");
         y.append("  mtu: ").append(mtu).append('\n');
         y.append("  ipv4: 26.26.26.1\n");
-        y.append("  ipv6: 'fdfe:dcba:9876::1'\n");
         y.append("socks5:\n");
         y.append("  address: 127.0.0.1\n");
         y.append("  port: ").append(port).append('\n');
@@ -432,7 +430,7 @@ public final class CoreBridge {
         FileWriter w = new FileWriter(path);
         w.write(y.toString());
         w.close();
-        log("hev.yaml written (socks=" + port + ", mtu=" + mtu + ")");
+        log("hev.yaml written (socks=" + port + ", mtu=" + mtu + ", level=info)");
     }
 
     /* ═══════════ پاک‌سازی قواعد geo ═══════════ */
