@@ -17,6 +17,13 @@ import java.util.Enumeration;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+/**
+ * پل بازتابی به هستهٔ Xray:
+ *  - لاگ حلقه‌ای + ذخیرهٔ فایل (حتی بعد از کرش باقی می‌ماند)
+ *  - لاگ فایلی Xray تضمین‌شده (xray-error.log / xray-access.log)
+ *  - پل TUN: رسمی AAR (Libv2ray.startLoop) اولویت، hev فالبک
+ *  - حذف خودکار قواعد geo اگر فایل dat نباشد
+ */
 public final class CoreBridge {
     private static final String TAG = "GozarCore";
     private static final StringBuilder ring = new StringBuilder();
@@ -93,12 +100,52 @@ public final class CoreBridge {
         } catch (Throwable ignored) {}
     }
 
+    /** خواندن N خط آخر یک فایل متنی */
+    private static String readTail(String path, int lines) {
+        try {
+            File f = new File(path);
+            if (!f.exists()) return "";
+            BufferedReader r = new BufferedReader(new FileReader(f));
+            java.util.ArrayList<String> buf = new java.util.ArrayList<>();
+            String line;
+            while ((line = r.readLine()) != null) {
+                buf.add(line);
+                if (buf.size() > lines) buf.remove(0);
+            }
+            r.close();
+            StringBuilder sb = new StringBuilder();
+            for (String l : buf) sb.append(l).append('\n');
+            return sb.toString();
+        } catch (Throwable t) { return ""; }
+    }
+
+    /** تضمین لاگ فایلی Xray — مستقل از JS، در هر حالتی تزریق می‌شود */
+    private static String ensureFileLogs(String json, String filesDir) {
+        try {
+            JSONObject cfg = new JSONObject(json);
+            JSONObject logObj = cfg.optJSONObject("log");
+            if (logObj == null) logObj = new JSONObject();
+            logObj.put("loglevel", "info");
+            logObj.put("error", filesDir + "/xray-error.log");
+            logObj.put("access", filesDir + "/xray-access.log");
+            cfg.put("log", logObj);
+            log("xray file logs ensured: " + filesDir + "/xray-error.log");
+            return cfg.toString();
+        } catch (Throwable t) {
+            log("ensureFileLogs failed: " + t);
+            return json;
+        }
+    }
+
+    /* ═══════════ شروع تونل ═══════════ */
+
     public static void start(String configJson, int tunFd, String filesDir, String nativeDir) throws Exception {
         if (running) stop();
 
         sLogPath = filesDir + "/gozar-core.log";
         sFilesDir = filesDir;
         loadPrev(sLogPath);
+        /* لاگ فایل‌های جلسهٔ قبل را پاک کن تا لاگ تازه جمع شود */
         try { new File(filesDir, "xray-error.log").delete(); } catch (Throwable ignored) {}
         try { new File(filesDir, "xray-access.log").delete(); } catch (Throwable ignored) {}
         try { new File(filesDir, "hev.log").delete(); } catch (Throwable ignored) {}
@@ -123,6 +170,9 @@ public final class CoreBridge {
         if (!geoOk) configJson = sanitize(configJson);
         else log("geo dat files present");
 
+        /* ═══ تضمین لاگ فایلی Xray — قطعی و مستقل از JS ═══ */
+        configJson = ensureFileLogs(configJson, filesDir);
+
         try {
             Method setter = findSupportSetter(point.getClass());
             if (setter != null) {
@@ -132,7 +182,7 @@ public final class CoreBridge {
                 setter.invoke(point, proxy);
                 log("support bound: " + setter.getName() + " (" + itf.getName() + ")");
             } else {
-                log("support setter NOT found");
+                log("support setter NOT found — bindProcessToNetwork handles egress");
             }
         } catch (Throwable t) { log("support bind failed: " + t); }
 
@@ -142,10 +192,16 @@ public final class CoreBridge {
             log("core started: " + n(startMethod));
         } catch (java.lang.reflect.InvocationTargetException ite) {
             Throwable c = ite.getCause() != null ? ite.getCause() : ite;
+            /* اگر هسته خطا داد، متن xray-error را هم ضمیمه کن */
+            String errLog = readTail(filesDir + "/xray-error.log", 20);
+            if (!errLog.isEmpty()) {
+                throw new Exception("core start failed: " + c
+                        + "\n─── xray-error.log ───\n" + errLog);
+            }
             throw new Exception("core start failed: " + c);
         }
 
-        /* ═══ پل TUN: پل رسمی AAR اولویت دارد، hev فالبک ═══ */
+        /* ═══ پل TUN: رسمی AAR اولویت دارد، hev فالبک ═══ */
         boolean bridgeUp = false;
         if (loopStart != null) {
             log("trying official AAR loop: " + n(loopStart));
@@ -171,8 +227,10 @@ public final class CoreBridge {
         }
         if (!bridgeUp) throw new Exception("no TUN bridge available");
         running = true;
-        log("== تونل بالا آمد — لاگ‌های xray-error/hev در همین صفحه ==");
+        log("== تونل بالا آمد — لاگ‌های xray-error/access/hev در همین صفحه ==");
     }
+
+    /* ═══════════ توقف ═══════════ */
 
     public static void stop() {
         if (!running) return;
@@ -192,6 +250,8 @@ public final class CoreBridge {
         running = false;
         log("core stopped");
     }
+
+    /* ═══════════ کشف API ═══════════ */
 
     private static void discover() throws Exception {
         if (point != null && startMethod != null) return;
@@ -403,6 +463,8 @@ public final class CoreBridge {
         return false;
     }
 
+    /* ═══════════ hev.yaml — فالبک ═══════════ */
+
     private static void writeYaml(String path, String filesDir) throws Exception {
         int mtu = 8500;
         String tos = "300,60";
@@ -442,6 +504,8 @@ public final class CoreBridge {
         w.close();
         log("hev.yaml written (socks=" + port + ", mtu=" + mtu + ")");
     }
+
+    /* ═══════════ پاک‌سازی قواعد geo ═══════════ */
 
     private static String sanitize(String json) {
         try {
