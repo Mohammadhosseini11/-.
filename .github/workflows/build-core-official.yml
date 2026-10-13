@@ -1,0 +1,114 @@
+name: Build Official Core AAR
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - name: دریافت سورس
+        uses: actions/checkout@v4
+
+      - name: بررسی پوشهٔ AndroidLibXrayLite
+        run: |
+          if [ ! -f "AndroidLibXrayLite/go.mod" ]; then
+            echo "FATAL: AndroidLibXrayLite/go.mod در ریپو نیست"
+            echo "پوشهٔ AndroidLibXrayLite (بدون پوشهٔ .git) را در ریشهٔ ریپو کامیت کنید"
+            exit 1
+          fi
+          echo "== محتوا =="
+          ls AndroidLibXrayLite/
+          echo "== پکیج libv2ray =="
+          ls AndroidLibXrayLite/libv2ray/ || echo "!! پوشهٔ libv2ray پیدا نشد"
+
+      - name: نصب Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: نصب Go 1.23
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: آماده‌سازی NDK
+        run: |
+          NDK=$ANDROID_HOME/ndk/26.3.11579264
+          if [ ! -d "$NDK" ]; then
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null || true
+            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.3.11579264" >/dev/null
+          fi
+          echo "NDK_PATH=$NDK" >> $GITHUB_ENV
+
+      - name: نصب gomobile
+        run: |
+          set -e
+          export ANDROID_NDK_HOME=$NDK_PATH
+          export PATH=$PATH:$(go env GOPATH)/bin
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
+          gomobile init
+
+      - name: بیلد AAR رسمی (bind پکیج libv2ray)
+        run: |
+          export ANDROID_NDK_HOME=$NDK_PATH
+          export PATH=$PATH:$(go env GOPATH)/bin
+          export GOTOOLCHAIN=auto
+          mkdir -p app/libs
+          cd AndroidLibXrayLite
+          go mod download || true
+          go get golang.org/x/mobile@latest
+          go get golang.org/x/mobile/cmd/gobind@latest
+          set +e
+          gomobile bind -v -target=android -androidapi 24 \
+            -ldflags='-s -w' -o ../app/libs/libv2ray.aar ./libv2ray 2>&1 | tee gomobile.log
+          RC=${PIPESTATUS[0]}
+          set -e
+          if [ "$RC" -ne 0 ]; then
+            echo "═════════════ خطای gomobile — ۱۰۰ خط آخر ═════════════"
+            tail -100 gomobile.log
+            echo "═════════════ پایان ═════════════"
+            mkdir -p ../faillog && cp gomobile.log ../faillog/ 2>/dev/null || true
+            exit 1
+          fi
+          echo "bind OK ✓"
+
+      - name: اعتبارسنجی AAR
+        run: |
+          set -e
+          ls -la app/libs/
+          rm -rf /tmp/v && mkdir -p /tmp/v
+          unzip -o -q app/libs/libv2ray.aar classes.jar -d /tmp/v
+          echo "== کلاس‌های داخل AAR =="
+          unzip -l /tmp/v/classes.jar | grep -i -E "libv2ray|V2RayPoint" | head -20 || true
+          unzip -l /tmp/v/classes.jar | grep -qi "V2RayPoint" || { echo "FATAL: V2RayPoint نیست"; exit 1; }
+          echo "AAR رسمی OK ✓  size=$(stat -c%s app/libs/libv2ray.aar) bytes"
+
+      - name: ذخیره در Release (کش دائمی)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view core-aar -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create core-aar -R "$GITHUB_REPOSITORY" \
+              --title "Official AndroidLibXrayLite AAR" --notes "هستهٔ رسمی + پل TUN"
+          gh release upload core-aar app/libs/libv2ray.aar --clobber -R "$GITHUB_REPOSITORY"
+          echo "در کش ذخیره شد ✓"
+
+      - name: آپلود Artifact (پشتیبان)
+        uses: actions/upload-artifact@v4
+        with:
+          name: libv2ray-official
+          path: app/libs/libv2ray.aar
+
+      - name: آپلود لاگ شکست
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-official-fail-logs
+          path: faillog/
+          if-no-files-found: ignore
