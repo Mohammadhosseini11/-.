@@ -18,11 +18,11 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * پل بازتابی به هستهٔ Xray (wrapper اختصاصی gozar.* روی xtls/xray-core):
+ * پل بازتابی به هستهٔ Xray:
  *  - لاگ حلقه‌ای + ذخیرهٔ فایل (حتی بعد از کرش باقی می‌ماند)
  *  - InitV2Env / اجرای هسته / پراکسی protect-fatal
  *  - پل TUN با TunBridge (hev) + فالبک پل بومی AAR
- *  - hev.yaml با MTU / سطح لاگ / تایم‌اوت‌ها از gozar-vpn.json
+ *  - hev.yaml با MTU / سطح لاگ / تایم‌اوت‌ها / پورت SOCKS از gozar-vpn.json
  *  - حذف خودکار قواعد geo اگر فایل dat نباشد
  */
 public final class CoreBridge {
@@ -114,7 +114,7 @@ public final class CoreBridge {
                 setter.invoke(point, proxy);
                 log("support bound: " + setter.getName() + " (" + itf.getName() + ")");
             } else {
-                log("support setter NOT found (bindProcessToNetwork handles egress)");
+                log("support setter NOT found (protect(fd) handled via service callback)");
             }
         } catch (Throwable t) { log("support bind failed: " + t); }
 
@@ -391,7 +391,7 @@ public final class CoreBridge {
         return false;
     }
 
-    /* ═══════════ hev.yaml — با پارامترهای پنل ═══════════ */
+    /* ═══════════ hev.yaml — با پارامترهای پنل (شامل IPv6 و پورت SOCKS) ═══════════ */
 
     private static void writeYaml(String path, String filesDir) throws Exception {
         int mtu = 8500;
@@ -414,9 +414,16 @@ public final class CoreBridge {
             }
         } catch (Throwable ignored) {}
         StringBuilder y = new StringBuilder();
-        y.append("tunnel:\n  mtu: ").append(mtu).append("\n  ipv4: 26.26.26.1\n");
-        y.append("socks5:\n  address: 127.0.0.1\n  port: ").append(port).append("\n  udp: 'udp'\n");
-        y.append("misc:\n  log-level: ").append(lvl).append('\n');
+        y.append("tunnel:\n");
+        y.append("  mtu: ").append(mtu).append('\n');
+        y.append("  ipv4: 26.26.26.1\n");
+        y.append("  ipv6: 'fdfe:dcba:9876::1'\n");
+        y.append("socks5:\n");
+        y.append("  address: 127.0.0.1\n");
+        y.append("  port: ").append(port).append('\n');
+        y.append("  udp: 'udp'\n");
+        y.append("misc:\n");
+        y.append("  log-level: ").append(lvl).append('\n');
         try {
             String[] p = tos.split(",");
             if (p.length >= 1) y.append("  idle_timeout: ").append(p[0].trim()).append('\n');
@@ -425,6 +432,7 @@ public final class CoreBridge {
         FileWriter w = new FileWriter(path);
         w.write(y.toString());
         w.close();
+        log("hev.yaml written (socks=" + port + ", mtu=" + mtu + ")");
     }
 
     /* ═══════════ پاک‌سازی قواعد geo ═══════════ */
