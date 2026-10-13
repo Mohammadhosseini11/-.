@@ -17,19 +17,12 @@ import java.util.Enumeration;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/**
- * پل بازتابی به هستهٔ Xray (wrapper اختصاصی gozar.* روی xtls/xray-core):
- *  - لاگ حلقه‌ای + ذخیرهٔ فایل (حتی بعد از کرش باقی می‌ماند)
- *  - InitV2Env / اجرای هسته / پراکسی protect-fatal
- *  - پل TUN با TunBridge (hev) + فالبک پل بومی AAR
- *  - hev.yaml با MTU / سطح لاگ info / تایم‌اوت‌ها / پورت SOCKS از gozar-vpn.json
- *  - حذف خودکار قواعد geo اگر فایل dat نباشد
- */
 public final class CoreBridge {
     private static final String TAG = "GozarCore";
     private static final StringBuilder ring = new StringBuilder();
     private static int ringCount = 0;
     private static String sLogPath = null;
+    private static String sFilesDir = null;
 
     private static Object point;
     private static Method startMethod, stopMethod;
@@ -56,7 +49,34 @@ public final class CoreBridge {
         }
     }
 
-    public static String getLog() { synchronized (ring) { return ring.toString(); } }
+    private static void tailFile(StringBuilder sb, File f, int lines) {
+        if (f == null || !f.exists() || f.length() == 0) return;
+        try {
+            BufferedReader r = new BufferedReader(new FileReader(f));
+            java.util.ArrayList<String> buf = new java.util.ArrayList<>();
+            String line;
+            while ((line = r.readLine()) != null) {
+                buf.add(line);
+                if (buf.size() > lines) buf.remove(0);
+            }
+            r.close();
+            if (buf.isEmpty()) return;
+            sb.append("──── ").append(f.getName()).append(" ────\n");
+            for (String l : buf) sb.append(l).append('\n');
+        } catch (Throwable ignored) {}
+    }
+
+    public static String getLog() {
+        synchronized (ring) {
+            StringBuilder sb = new StringBuilder(ring);
+            if (sFilesDir != null) {
+                tailFile(sb, new File(sFilesDir, "xray-error.log"), 60);
+                tailFile(sb, new File(sFilesDir, "xray-access.log"), 25);
+                tailFile(sb, new File(sFilesDir, "hev.log"), 40);
+            }
+            return sb.toString();
+        }
+    }
 
     private static void loadPrev(String logPath) {
         try {
@@ -73,17 +93,17 @@ public final class CoreBridge {
         } catch (Throwable ignored) {}
     }
 
-    /* ═══════════ شروع تونل ═══════════ */
-
     public static void start(String configJson, int tunFd, String filesDir, String nativeDir) throws Exception {
         if (running) stop();
 
         sLogPath = filesDir + "/gozar-core.log";
+        sFilesDir = filesDir;
         loadPrev(sLogPath);
+        try { new File(filesDir, "xray-error.log").delete(); } catch (Throwable ignored) {}
+        try { new File(filesDir, "xray-access.log").delete(); } catch (Throwable ignored) {}
+        try { new File(filesDir, "hev.log").delete(); } catch (Throwable ignored) {}
+
         log("device ABI: " + Build.SUPPORTED_ABIS[0] + " · arch: " + System.getProperty("os.arch"));
-        log("native dir: " + nativeDir);
-        log("libgozar-tun.so: " + new File(nativeDir, "libgozar-tun.so").exists()
-                + " · libhev-socks5-tunnel.so: " + new File(nativeDir, "libhev-socks5-tunnel.so").exists());
         log("TunBridge: " + TunBridge.status());
 
         discover();
@@ -96,8 +116,6 @@ public final class CoreBridge {
                 initEnv.invoke(null, a);
                 log("InitV2Env ok: " + n(initEnv));
             } catch (Throwable t) { log("InitV2Env failed: " + t); }
-        } else {
-            log("InitV2Env not found in AAR");
         }
 
         boolean geoOk = new File(filesDir, "geoip.dat").exists()
@@ -114,7 +132,7 @@ public final class CoreBridge {
                 setter.invoke(point, proxy);
                 log("support bound: " + setter.getName() + " (" + itf.getName() + ")");
             } else {
-                log("support setter NOT found — bindProcessToNetwork handles egress");
+                log("support setter NOT found");
             }
         } catch (Throwable t) { log("support bind failed: " + t); }
 
@@ -127,24 +145,34 @@ public final class CoreBridge {
             throw new Exception("core start failed: " + c);
         }
 
-        String yaml = filesDir + "/hev.yaml";
-        try { writeYaml(yaml, filesDir); } catch (Throwable t) { throw new Exception("write hev.yaml: " + t); }
-        int r = -999;
-        try { r = TunBridge.start(yaml, tunFd); } catch (Throwable t) { log("hev start threw: " + t); }
-        if (r == 0) {
-            log("hev TUN bridge started (fd=" + tunFd + ")");
-        } else if (loopStart != null) {
-            log("hev unavailable (rc=" + r + ") — trying AAR loop: " + n(loopStart));
+        /* ═══ پل TUN: پل رسمی AAR اولویت دارد، hev فالبک ═══ */
+        boolean bridgeUp = false;
+        if (loopStart != null) {
+            log("trying official AAR loop: " + n(loopStart));
             Object[] a = loopArgs(loopStart, tunFd);
-            if (!invokeLoop(loopStart, a)) log("ERROR: AAR loop invoke failed — no TUN bridge!");
-            else log("AAR loop started");
-        } else {
-            log("ERROR: no TUN bridge available (hev rc=" + r + ", AAR loop=null)");
+            if (invokeLoop(loopStart, a)) {
+                log("AAR loop started ✓ (official tun2socks)");
+                bridgeUp = true;
+            } else {
+                log("AAR loop invoke failed");
+            }
         }
+        if (!bridgeUp) {
+            String yaml = filesDir + "/hev.yaml";
+            try { writeYaml(yaml, filesDir); } catch (Throwable t) { throw new Exception("write hev.yaml: " + t); }
+            int r = -999;
+            try { r = TunBridge.start(yaml, tunFd); } catch (Throwable t) { log("hev start threw: " + t); }
+            if (r == 0) {
+                log("hev TUN bridge started (fd=" + tunFd + ")");
+                bridgeUp = true;
+            } else {
+                log("ERROR: no TUN bridge available (hev rc=" + r + ")");
+            }
+        }
+        if (!bridgeUp) throw new Exception("no TUN bridge available");
         running = true;
+        log("== تونل بالا آمد — لاگ‌های xray-error/hev در همین صفحه ==");
     }
-
-    /* ═══════════ توقف ═══════════ */
 
     public static void stop() {
         if (!running) return;
@@ -165,26 +193,22 @@ public final class CoreBridge {
         log("core stopped");
     }
 
-    /* ═══════════ کشف API — سخت‌گیرانه ═══════════ */
-
     private static void discover() throws Exception {
         if (point != null && startMethod != null) return;
 
         Class<?> pc = null;
-        /* wrapper اختصاصی ما اولویت دارد */
-        String[] names = { "gozar.V2RayPoint", "v2ray.V2RayPoint", "go.V2RayPoint", "v2ray.core.V2RayPoint" };
+        /* هستهٔ رسمی اولویت دارد؛ wrapper قدیمی فالبک */
+        String[] names = { "libv2ray.V2RayPoint", "v2ray.V2RayPoint", "gozar.V2RayPoint", "go.V2RayPoint" };
         for (String nm : names) {
             pc = classFor(nm);
             if (pc != null) { log("V2RayPoint at " + nm); break; }
         }
 
-        /* جستجوی سراسری: هر کلاسی که به V2RayPoint ختم شود */
         if (pc == null && sApkPath != null) {
             try {
                 DexFile dex = new DexFile(sApkPath);
                 Enumeration<String> en = dex.entries();
                 int scanned = 0;
-                StringBuilder sample = new StringBuilder();
                 while (en.hasMoreElements() && scanned < 5000) {
                     String cn = en.nextElement();
                     if (cn.startsWith("java.") || cn.startsWith("javax.")
@@ -197,24 +221,14 @@ public final class CoreBridge {
                             log("V2RayPoint found via dex scan: " + cn);
                         } catch (Throwable ignored) {}
                     }
-                    if (sample.length() < 3500
-                            && (cn.startsWith("v2ray") || cn.startsWith("gozar")
-                                || cn.startsWith("go.") || cn.startsWith("io.")
-                                || cn.startsWith("com."))) {
-                        sample.append(cn).append(' ');
-                    }
                 }
-                log("dex scan: " + scanned + " classes; sample: " + sample);
             } catch (Throwable t) { log("dex scan failed: " + t); }
         }
 
-        if (pc == null) {
-            throw new Exception("V2RayPoint class NOT found in AAR");
-        }
+        if (pc == null) throw new Exception("V2RayPoint class NOT found in AAR");
 
         point = staticInstance(pc);
         if (point == null) {
-            /* wrapper ما singleton استاتیک ندارد — با سازنده بساز */
             try {
                 point = pc.getDeclaredConstructor().newInstance();
                 log("V2RayPoint instantiated via constructor");
@@ -232,13 +246,11 @@ public final class CoreBridge {
                     && !n.contains("loop")) stopMethod = m;
         }
 
-        /* کلاس‌های کمکی شناخته‌شده + wrapper خودمان */
+        scanClass(classFor("libv2ray.Libv2ray"));
         scanClass(classFor("v2ray.Libv2ray"));
         scanClass(classFor("v2ray.Tun2Socks"));
         scanClass(classFor("gozar.Gozar"));
-        scanClass(classFor("libv2ray.Libv2ray"));
 
-        /* اسکن سراسری v2ray.* و gozar.* برای InitV2Env / loop */
         if (sApkPath != null) {
             try {
                 DexFile dex = new DexFile(sApkPath);
@@ -246,7 +258,7 @@ public final class CoreBridge {
                 int scanned = 0;
                 while (en.hasMoreElements() && scanned < 2000) {
                     String cn = en.nextElement();
-                    if (!cn.startsWith("v2ray.") && !cn.startsWith("gozar.")) continue;
+                    if (!cn.startsWith("v2ray.") && !cn.startsWith("gozar.") && !cn.startsWith("libv2ray.")) continue;
                     if (cn.contains("$")) continue;
                     scanned++;
                     try {
@@ -373,7 +385,7 @@ public final class CoreBridge {
             Class<?> p = ps[i];
             if (p == long.class)  a[i] = (numeric++ == 0) ? (long) tunFd : 0L;
             else if (p == int.class) a[i] = (numeric++ == 0) ? tunFd : 8500;
-            else if (p == String.class) a[i] = "socks5://127.0.0.1:10808";
+            else if (p == String.class) a[i] = "127.0.0.1";
             else if (p == boolean.class) a[i] = Boolean.FALSE;
             else if (p == short.class) a[i] = (short) 0;
             else if (p == double.class) a[i] = 0d;
@@ -391,11 +403,8 @@ public final class CoreBridge {
         return false;
     }
 
-    /* ═══════════ hev.yaml — با پارامترهای پنل (فقط IPv4 + log-level info) ═══════════ */
-
     private static void writeYaml(String path, String filesDir) throws Exception {
         int mtu = 8500;
-        String lvl = "info";
         String tos = "300,60";
         int port = 10808;
         try {
@@ -421,7 +430,8 @@ public final class CoreBridge {
         y.append("  port: ").append(port).append('\n');
         y.append("  udp: 'udp'\n");
         y.append("misc:\n");
-        y.append("  log-level: ").append(lvl).append('\n');
+        y.append("  log-file: ").append(filesDir).append("/hev.log\n");
+        y.append("  log-level: info\n");
         try {
             String[] p = tos.split(",");
             if (p.length >= 1) y.append("  idle_timeout: ").append(p[0].trim()).append('\n');
@@ -430,10 +440,8 @@ public final class CoreBridge {
         FileWriter w = new FileWriter(path);
         w.write(y.toString());
         w.close();
-        log("hev.yaml written (socks=" + port + ", mtu=" + mtu + ", level=info)");
+        log("hev.yaml written (socks=" + port + ", mtu=" + mtu + ")");
     }
-
-    /* ═══════════ پاک‌سازی قواعد geo ═══════════ */
 
     private static String sanitize(String json) {
         try {
