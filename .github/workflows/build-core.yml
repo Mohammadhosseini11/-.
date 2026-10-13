@@ -42,15 +42,10 @@ jobs:
           go install golang.org/x/mobile/cmd/gobind@latest
           gomobile init
 
-      - name: آماده‌سازی wrapper (از ریپو)
+      - name: بیلد AAR هسته (از core-src ریپو)
         run: |
           set -e
-          test -f core-src/gozar.go || { echo "FATAL: core-src/gozar.go در ریپو نیست"; exit 1; }
-          echo "== go.mod ==";  cat core-src/go.mod
-          echo "== gozar.go =="; cat core-src/gozar.go
-
-      - name: بیلد AAR هسته
-        run: |
+          test -f core-src/gozar.go || { echo "FATAL: core-src/gozar.go نیست"; exit 1; }
           export ANDROID_NDK_HOME=$NDK_PATH
           export PATH=$PATH:$(go env GOPATH)/bin
           export GOTOOLCHAIN=auto
@@ -58,17 +53,18 @@ jobs:
           go mod tidy 2>&1 | tee go-tidy.log
           go get golang.org/x/mobile@latest
           go get golang.org/x/mobile/cmd/gobind@latest
-          grep -n "golang.org/x/mobile" go.mod || { echo "FATAL: x/mobile ثبت نشد"; exit 1; }
+          go get golang.org/x/sys@latest
+          grep -n "golang.org/x/mobile" go.mod || { echo "FATAL"; exit 1; }
           set +e
           gomobile bind -v -target=android -androidapi 24 \
             -ldflags='-s -w' -o ../app/libs/libv2ray.aar ./ 2>&1 | tee gomobile.log
           RC=${PIPESTATUS[0]}
           set -e
-          mkdir -p ../faillog && cp go.mod go.sum gomobile.log go-tidy.log ../faillog/ 2>/dev/null || true
           if [ "$RC" -ne 0 ]; then
             echo "═════════════ خطای gomobile — ۱۰۰ خط آخر ═════════════"
             tail -100 gomobile.log
             echo "═════════════ پایان ═════════════"
+            mkdir -p ../faillog && cp gomobile.log ../faillog/ 2>/dev/null || true
             exit 1
           fi
           echo "bind OK ✓"
@@ -88,11 +84,11 @@ jobs:
         run: |
           gh release view core-aar -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
             gh release create core-aar -R "$GITHUB_REPOSITORY" \
-              --title "Prebuilt Xray Core AAR" --notes "کش هسته — توسط Actions ساخته شده"
+              --title "Prebuilt Xray Core AAR" --notes "کش هسته"
           gh release upload core-aar app/libs/libv2ray.aar --clobber -R "$GITHUB_REPOSITORY"
           echo "AAR در Release ذخیره شد ✓"
 
-      - name: آپلود Artifact (پشتیبان)
+      - name: آپلود Artifact
         uses: actions/upload-artifact@v4
         with:
           name: libv2ray-aar
