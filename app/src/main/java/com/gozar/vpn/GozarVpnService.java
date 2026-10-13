@@ -59,41 +59,60 @@ public class GozarVpnService extends VpnService {
     }
 
     /**
-     * ✨ نجات سوکت‌های هسته از تونل — ترکیب دو روش:
-     *   ۱. bindProcessToNetwork: کل پروسه به شبکهٔ فیزیکی بسته می‌شود
-     *   ۲. protect(fd) برای سوکت‌هایی که صریحاً protect می‌شوند
-     *
-     * هر دو را با هم فعال می‌کنیم — هر کدام کار کند کافی است.
+     * نجات سوکت‌های هستهٔ Xray از تونل — با فالبک:
+     *   بهترین شبکهٔ فیزیکی (WiFi اولویت) → هر شبکهٔ اینترنت‌دار → خطای شفاف
      */
     private void bindProcessToPhysicalNetwork() {
         try {
             ConnectivityManager cm = getSystemService(ConnectivityManager.class);
+            if (cm == null) {
+                CoreBridge.log("WARN: ConnectivityManager null");
+                return;
+            }
             Network best = null;
             NetworkCapabilities bestCap = null;
-            if (cm != null) {
+            Network fallback = null;
+            try {
                 for (Network n : cm.getAllNetworks()) {
                     NetworkCapabilities cap = cm.getNetworkCapabilities(n);
                     if (cap == null) continue;
                     if (cap.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) continue;
                     if (!cap.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) continue;
-                    if (!cap.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) continue;
-                    // اولویت: WiFi > Cellular
+                    if (fallback == null) fallback = n;
                     boolean isWifi = cap.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
-                    if (best == null) {
-                        best = n; bestCap = cap;
-                    } else if (isWifi && bestCap != null
-                            && !bestCap.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                        best = n; bestCap = cap;
+                    boolean isValidated = cap.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+                    if (isValidated) {
+                        if (best == null) {
+                            best = n;
+                            bestCap = cap;
+                        } else if (isWifi && bestCap != null
+                                && !bestCap.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                            best = n;
+                            bestCap = cap;
+                        }
+                        if (bestCap != null
+                                && bestCap.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) break;
                     }
-                    if (bestCap != null && bestCap.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) break;
                 }
+            } catch (Throwable t) {
+                CoreBridge.log("getAllNetworks: " + t);
             }
-            if (best != null && cm.bindProcessToNetwork(best)) {
-                boundNetwork = best;
-                CoreBridge.log("✓ process bound to physical network — core egress bypasses TUN");
+
+            Network target = (best != null) ? best : fallback;
+            if (target == null) {
+                CoreBridge.log("WARN: no physical network found (besides VPN)");
+                return;
+            }
+            if (cm.bindProcessToNetwork(target)) {
+                boundNetwork = target;
+                CoreBridge.log("✓ process bound to physical network (netId="
+                        + target.getNetworkHandle() + ") — core egress bypasses TUN");
             } else {
-                CoreBridge.log("WARN: bindProcessToNetwork failed — protect(fd) is fallback");
+                CoreBridge.log("WARN: bindProcessToNetwork returned false");
             }
+        } catch (SecurityException se) {
+            CoreBridge.log("SECURITY: " + se.getMessage());
+            CoreBridge.log("→ ACCESS_NETWORK_STATE permission missing — check AndroidManifest.xml");
         } catch (Throwable t) {
             CoreBridge.log("bindProcessToNetwork: " + t);
         }
@@ -156,7 +175,6 @@ public class GozarVpnService extends VpnService {
 
             CoreBridge.log("VPN TUN established (fd=" + tun.getFd() + ")");
 
-            // نجات سوکت‌های هسته از تونل
             bindProcessToPhysicalNetwork();
 
             CoreBridge.setApkPath(getApplicationInfo().sourceDir);
@@ -182,7 +200,6 @@ public class GozarVpnService extends VpnService {
             try { tun.close(); } catch (Throwable ignored) {}
             tun = null;
         }
-        // رفع bind پروسه
         try {
             ConnectivityManager cm = getSystemService(ConnectivityManager.class);
             if (cm != null) cm.bindProcessToNetwork(null);
