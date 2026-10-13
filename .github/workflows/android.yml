@@ -21,24 +21,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: نصب Go 1.23
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-
       - name: نصب Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
-
-      - name: آماده‌سازی NDK
-        run: |
-          NDK=$ANDROID_HOME/ndk/26.3.11579264
-          if [ ! -d "$NDK" ]; then
-            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null || true
-            yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.3.11579264" >/dev/null
-          fi
-          echo "NDK_PATH=$NDK" >> $GITHUB_ENV
 
       - name: بررسی کش AAR هسته
         id: aar_cache
@@ -55,77 +41,19 @@ jobs:
               if [ "$SIZE" -gt 2000000 ]; then FOUND=1; fi
             fi
           fi
-          if [ "$FOUND" -ne 1 ]; then rm -f app/libs/libv2ray.aar; echo "کش AAR موجود نبود"; fi
-          echo "found=$FOUND" >> $GITHUB_OUTPUT
-
-      - name: بررسی کش پل TUN
-        id: hev_cache
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          FOUND=0
-          if gh release view hev-libs -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            for ABI in arm64-v8a armeabi-v7a x86_64; do
-              mkdir -p app/src/main/jniLibs/$ABI
-              gh release download hev-libs -R "$GITHUB_REPOSITORY" \
-                 -p "libgozar-tun-$ABI.so" \
-                 -O "app/src/main/jniLibs/$ABI/libgozar-tun.so" >/dev/null 2>&1 || true
-            done
-            N=$(find app/src/main/jniLibs -name "libgozar-tun.so" | wc -l)
-            if [ "$N" -eq 3 ]; then FOUND=1; echo "پل TUN از کش دریافت شد ✓"; fi
-          fi
           if [ "$FOUND" -ne 1 ]; then
-            rm -rf app/src/main/jniLibs
-            echo "کش پل TUN موجود نبود"
+            rm -f app/libs/libv2ray.aar
+            echo "کش AAR موجود نبود — ابتدا «Build Core AAR» را اجرا کنید"
           fi
           echo "found=$FOUND" >> $GITHUB_OUTPUT
 
-      - name: نصب gomobile
+      - name: بیلد هسته در صورت نبود کش (فالبک)
         if: steps.aar_cache.outputs.found != '1'
         run: |
-          set -e
-          export ANDROID_NDK_HOME=$NDK_PATH
-          export PATH=$PATH:$(go env GOPATH)/bin
-          go install golang.org/x/mobile/cmd/gomobile@latest
-          go install golang.org/x/mobile/cmd/gobind@latest
-          gomobile init
-
-      - name: بیلد هسته (فقط اگر کش نبود)
-        if: steps.aar_cache.outputs.found != '1'
-        run: |
-          set -e
-          test -f core-src/gozar.go || { echo "FATAL: core-src/gozar.go در ریپو نیست"; exit 1; }
-          export ANDROID_NDK_HOME=$NDK_PATH
-          export PATH=$PATH:$(go env GOPATH)/bin
-          export GOTOOLCHAIN=auto
-          cd core-src
-          go mod tidy 2>&1 | tee go-tidy.log
-          go get golang.org/x/mobile@latest
-          go get golang.org/x/mobile/cmd/gobind@latest
-          grep -n "golang.org/x/mobile" go.mod || { echo "FATAL: x/mobile ثبت نشد"; exit 1; }
-          set +e
-          gomobile bind -v -target=android -androidapi 24 \
-            -ldflags='-s -w' -o ../app/libs/libv2ray.aar ./ 2>&1 | tee gomobile.log
-          RC=${PIPESTATUS[0]}
-          set -e
-          if [ "$RC" -ne 0 ]; then
-            echo "═════════════ خطای gomobile — ۱۰۰ خط آخر ═════════════"
-            tail -100 gomobile.log
-            echo "═════════════ پایان ═════════════"
-            mkdir -p ../faillog && cp gomobile.log ../faillog/ 2>/dev/null || true
-            exit 1
-          fi
-          echo "bind OK ✓"
-
-      - name: ذخیرهٔ AAR تازه در کش
-        if: steps.aar_cache.outputs.found != '1'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release view core-aar -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-            gh release create core-aar -R "$GITHUB_REPOSITORY" --title "Prebuilt Core" --notes "cache"
-          gh release upload core-aar app/libs/libv2ray.aar --clobber -R "$GITHUB_REPOSITORY"
-          echo "در کش ذخیره شد ✓"
+          echo "FATAL: کش AAR موجود نیست"
+          echo "ابتدا Actions → «Build Core AAR (یک‌بار)» → Run workflow کنید"
+          echo "بعد از سبز شدن، این ورک‌فلو به‌طور خودکار AAR را از کش می‌گیرد"
+          exit 1
 
       - name: اعتبارسنجی AAR
         run: |
@@ -144,43 +72,6 @@ jobs:
             "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
           curl -fL --retry 3 -o app/src/main/assets/geosite.dat \
             "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
-
-      - name: دریافت hev-socks5-tunnel (با ساب‌ماژول‌ها)
-        if: steps.hev_cache.outputs.found != '1'
-        uses: actions/checkout@v4
-        with:
-          repository: heiher/hev-socks5-tunnel
-          path: third_party/hev-socks5-tunnel
-          submodules: recursive
-
-      - name: بیلد hev + پل JNI (اسکریپت‌های ریپو)
-        if: steps.hev_cache.outputs.found != '1'
-        run: |
-          bash scripts/build-hev.sh
-          bash scripts/build-jni.sh
-
-      - name: ذخیرهٔ پل تازه در کش
-        if: steps.hev_cache.outputs.found != '1'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release view hev-libs -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-            gh release create hev-libs -R "$GITHUB_REPOSITORY" --title "Prebuilt TUN libs" --notes "cache"
-          for ABI in arm64-v8a armeabi-v7a x86_64; do
-            cp app/src/main/jniLibs/$ABI/libgozar-tun.so out-tun-$ABI.so
-          done
-          gh release upload hev-libs out-tun-*.so --clobber -R "$GITHUB_REPOSITORY" || true
-          echo "در کش ذخیره شد ✓"
-
-      - name: بررسی کتابخانه‌های نیتیو
-        run: |
-          set -e
-          for ABI in arm64-v8a armeabi-v7a x86_64; do
-            if [ ! -f "app/src/main/jniLibs/$ABI/libgozar-tun.so" ]; then
-              echo "FATAL: libgozar-tun.so برای $ABI وجود ندارد"; exit 1
-            fi
-          done
-          ls -la app/src/main/jniLibs/*/
 
       - name: ساخت کلید امضا (فقط بار اول)
         if: ${{ hashFiles('gozar.jks') == '' }}
@@ -205,8 +96,6 @@ jobs:
               echo "════ انتهای $f ════"; tail -60 "$f" || true; cp "$f" faillog/ || true
             fi
           done
-          grep -n -i -E "error|cannot find|undefined|CMake Error|FAILURE:" faillog/* 2>/dev/null | head -80 || true
-          echo "(گزارش کامل شد)"
 
       - name: آپلود لاگ‌های شکست
         if: failure()
