@@ -58,34 +58,11 @@ public class GozarVpnService extends VpnService {
     }
 
     /**
-     * پروسه را به شبکهٔ فیزیکی (غیر-VPN) می‌بندد تا سوکت‌های هستهٔ Xray
-     * از خودِ تونل عبور نکنند (جایگزین protect بدون نیازی به هوک هسته).
+     * ⚠️ موقتاً غیرفعال — ترافیک عمومی باید از TUN برود و هسته با protect(fd)
+     * سوکت‌های خودش را نجات دهد. بعد از تأیید جریان عمومی، بازبینی می‌شود.
      */
     private void bindProcessToPhysicalNetwork() {
-        try {
-            ConnectivityManager cm = getSystemService(ConnectivityManager.class);
-            Network best = null;
-            NetworkCapabilities bestCap = null;
-            if (cm != null) {
-                for (Network n : cm.getAllNetworks()) {
-                    NetworkCapabilities cap = cm.getNetworkCapabilities(n);
-                    if (cap == null) continue;
-                    if (cap.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) continue;
-                    if (!cap.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) continue;
-                    boolean better = best == null
-                            || cap.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
-                    if (better) { best = n; bestCap = cap; }
-                    if (bestCap != null && bestCap.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) break;
-                }
-            }
-            if (best != null && cm.bindProcessToNetwork(best)) {
-                CoreBridge.log("process bound to physical network — core egress bypasses TUN ✓");
-            } else {
-                CoreBridge.log("WARN: bindProcessToNetwork failed — core egress may loop!");
-            }
-        } catch (Throwable t) {
-            CoreBridge.log("bindProcessToNetwork: " + t);
-        }
+        CoreBridge.log("bindProcessToNetwork: SKIPPED (protect(fd) path active)");
     }
 
     @Override
