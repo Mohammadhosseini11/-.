@@ -26,6 +26,7 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      # ═══ هستهٔ رسمی: از کش Release یا پوشهٔ سورس خود ریپو ═══
       - name: بررسی کش AAR هسته
         id: aar_cache
         env:
@@ -41,19 +42,14 @@ jobs:
               if [ "$SIZE" -gt 2000000 ]; then FOUND=1; fi
             fi
           fi
-          if [ "$FOUND" -ne 1 ]; then
-            rm -f app/libs/libv2ray.aar
-            echo "کش AAR موجود نبود — ابتدا «Build Core AAR» را اجرا کنید"
-          fi
+          if [ "$FOUND" -ne 1 ]; then rm -f app/libs/libv2ray.aar; echo "کش AAR موجود نبود"; fi
           echo "found=$FOUND" >> $GITHUB_OUTPUT
 
-      - name: بیلد هسته در صورت نبود کش (فالبک)
+      - name: بیلد هسته در صورت نبود کش
         if: steps.aar_cache.outputs.found != '1'
         run: |
-          echo "FATAL: کش AAR موجود نیست"
-          echo "ابتدا Actions → «Build Core AAR (یک‌بار)» → Run workflow کنید"
-          echo "بعد از سبز شدن، این ورک‌فلو به‌طور خودکار AAR را از کش می‌گیرد"
-          exit 1
+          set -e
+          test -f AndroidLibXrayLite/go.mod || { echo "FATAL: AndroidLibXrayLite/go.mod نیست — ابتدا «Build Official Core AAR» را اجرا کنید"; exit 1; }
 
       - name: اعتبارسنجی AAR
         run: |
@@ -61,7 +57,8 @@ jobs:
           ls -la app/libs/
           rm -rf /tmp/aarv && mkdir -p /tmp/aarv
           unzip -o -q app/libs/libv2ray.aar classes.jar -d /tmp/aarv
-          unzip -l /tmp/aarv/classes.jar | grep -i -E "gozar|V2RayPoint" | head -10 || true
+          echo "== کلاس‌ها =="
+          unzip -l /tmp/aarv/classes.jar | grep -i -E "libv2ray|V2RayPoint" | head -10 || true
           unzip -l /tmp/aarv/classes.jar | grep -qi "V2RayPoint" || { echo "FATAL: V2RayPoint نیست"; exit 1; }
           echo "AAR OK ✓"
 
@@ -72,6 +69,21 @@ jobs:
             "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
           curl -fL --retry 3 -o app/src/main/assets/geosite.dat \
             "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+
+      - name: بیلد hev + پل JNI (اسکریپت‌های ریپو)
+        run: |
+          bash scripts/build-hev.sh
+          bash scripts/build-jni.sh
+
+      - name: بررسی کتابخانه‌های نیتیو
+        run: |
+          set -e
+          for ABI in arm64-v8a armeabi-v7a x86_64; do
+            if [ ! -f "app/src/main/jniLibs/$ABI/libgozar-tun.so" ]; then
+              echo "FATAL: libgozar-tun.so برای $ABI وجود ندارد"; exit 1
+            fi
+          done
+          ls -la app/src/main/jniLibs/*/
 
       - name: ساخت کلید امضا (فقط بار اول)
         if: ${{ hashFiles('gozar.jks') == '' }}
@@ -91,11 +103,13 @@ jobs:
         run: |
           mkdir -p faillog || true
           shopt -s nullglob
-          for f in core-src/gomobile.log core-src/go-tidy.log build.log; do
+          for f in core-src/gomobile.log build.log; do
             if [ -f "$f" ]; then
               echo "════ انتهای $f ════"; tail -60 "$f" || true; cp "$f" faillog/ || true
             fi
           done
+          grep -n -i -E "error|cannot find|undefined|CMake Error|FAILURE:" faillog/* 2>/dev/null | head -80 || true
+          echo "(گزارش کامل شد)"
 
       - name: آپلود لاگ‌های شکست
         if: failure()
