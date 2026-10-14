@@ -1,0 +1,136 @@
+name: Build Official Core AAR
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - name: دریافت سورس
+        uses: actions/checkout@v4
+
+      - name: بررسی سورس AndroidLibXrayLite
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f "AndroidLibXrayLite/go.mod" ]; then
+            echo "FATAL: AndroidLibXrayLite/go.mod در ریشهٔ مخزن پیدا نشد"
+            exit 1
+          fi
+          if ! grep -q '^package libv2ray' AndroidLibXrayLite/libv2ray_main.go; then
+            echo "FATAL: فایل‌های پکیج libv2ray در مسیر مورد انتظار پیدا نشدند"
+            exit 1
+          fi
+          echo "== فایل‌های Go =="
+          find AndroidLibXrayLite -maxdepth 1 -type f -name '*.go' -print
+          echo "== نسخهٔ Go در go.mod =="
+          grep -E '^(module|go) ' AndroidLibXrayLite/go.mod
+
+      - name: نصب Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: نصب Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: AndroidLibXrayLite/go.mod
+          cache: true
+          cache-dependency-path: AndroidLibXrayLite/go.sum
+
+      - name: آماده‌سازی Android NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK="$ANDROID_HOME/ndk/26.3.11579264"
+          if [ ! -d "$NDK" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;26.3.11579264"
+          fi
+          echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
+          echo "NDK_PATH=$NDK" >> "$GITHUB_ENV"
+
+      - name: نصب gomobile و gobind
+        shell: bash
+        working-directory: AndroidLibXrayLite
+        run: |
+          set -euo pipefail
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
+          gomobile init
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: ساخت AAR رسمی
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          export GOTOOLCHAIN=auto
+          mkdir -p app/libs
+          cd AndroidLibXrayLite
+          go mod download
+          set +e
+          gomobile bind -v -target=android -androidapi 24 \
+            -ldflags='-s -w' -o ../app/libs/libv2ray.aar . 2>&1 | tee gomobile.log
+          RC=${PIPESTATUS[0]}
+          set -e
+          if [ "$RC" -ne 0 ]; then
+            echo "خطای gomobile؛ ۱۰۰ خط آخر گزارش:"
+            tail -100 gomobile.log
+            mkdir -p ../faillog
+            cp gomobile.log ../faillog/gomobile.log
+            exit "$RC"
+          fi
+          echo "ساخت AAR با موفقیت انجام شد."
+
+      - name: اعتبارسنجی AAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/libs/libv2ray.aar
+          rm -rf /tmp/gozar-aar-check
+          mkdir -p /tmp/gozar-aar-check
+          unzip -q app/libs/libv2ray.aar classes.jar -d /tmp/gozar-aar-check
+          echo "== کلاس‌های تولیدشده =="
+          jar tf /tmp/gozar-aar-check/classes.jar | head -80
+          if ! jar tf /tmp/gozar-aar-check/classes.jar | grep -q 'libv2ray/CoreController.class'; then
+            echo "FATAL: کلاس CoreController در AAR تولیدشده پیدا نشد"
+            exit 1
+          fi
+          echo "AAR معتبر است؛ اندازه: $(stat -c%s app/libs/libv2ray.aar) bytes"
+
+      - name: ذخیره AAR در GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gh release view core-aar -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create core-aar -R "$GITHUB_REPOSITORY" \
+              --title "Official AndroidLibXrayLite AAR" \
+              --notes "AAR ساخته‌شده از سورس AndroidLibXrayLite همین مخزن"
+          fi
+          gh release upload core-aar app/libs/libv2ray.aar --clobber -R "$GITHUB_REPOSITORY"
+
+      - name: آپلود Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libv2ray-official
+          path: app/libs/libv2ray.aar
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: آپلود گزارش شکست
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-official-fail-logs
+          path: faillog/
+          if-no-files-found: ignore
+          retention-days: 7
