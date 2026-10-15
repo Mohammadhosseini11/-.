@@ -59,7 +59,10 @@ jobs:
           unzip -o -q app/libs/libv2ray.aar classes.jar -d /tmp/aarv
           echo "== کلاس‌ها =="
           unzip -l /tmp/aarv/classes.jar | grep -i -E "libv2ray|V2RayPoint" | head -10 || true
-          unzip -l /tmp/aarv/classes.jar | grep -qi "V2RayPoint" || { echo "FATAL: V2RayPoint نیست"; exit 1; }
+          unzip -l /tmp/aarv/classes.jar | grep -q 'libv2ray/CoreController.class' || {
+  echo "FATAL: CoreController نیست"
+  exit 1
+}
           echo "AAR OK ✓"
 
       - name: دانلود فایل‌های geo (مسیریابی ایران)
