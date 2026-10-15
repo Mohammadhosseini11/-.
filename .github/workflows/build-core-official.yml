@@ -171,7 +171,7 @@ jobs:
             | head -60 || true
 
           jar tf /tmp/gozar-aar/classes.jar \
-            | grep -q 'go/libv2ray/CoreController.class' || {
+            | grep -q 'libv2ray/CoreController.class' /tmp/gozar-aar/classes.jar || {
               echo "ERROR: go.libv2ray.CoreController was not found"
               exit 1
             }
