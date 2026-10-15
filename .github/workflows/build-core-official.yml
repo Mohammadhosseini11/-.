@@ -140,7 +140,7 @@ jobs:
           gomobile bind -v \
             -target=android \
             -androidapi 24 \
-            -ldflags='-s -w' \
+            -ldflags='-s -w -buildid= -checklinkname=0' \
             -o ../app/libs/libv2ray.aar . 2>&1 | tee gomobile-build.log
 
           RC=${PIPESTATUS[0]}
