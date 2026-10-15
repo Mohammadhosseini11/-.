@@ -2,539 +2,737 @@ package com.gozar.vpn;
 
 import android.os.Build;
 import android.util.Log;
-import dalvik.system.DexFile;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.PrintWriter;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
-import java.util.Enumeration;
+import java.util.ArrayList;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * پل بازتابی به هستهٔ Xray:
- *  - لاگ حلقه‌ای + ذخیرهٔ فایل (حتی بعد از کرش باقی می‌ماند)
- *  - لاگ فایلی Xray تضمین‌شده (xray-error.log / xray-access.log)
- *  - پل TUN: رسمی AAR (Libv2ray.startLoop) اولویت، hev فالبک
- *  - حذف خودکار قواعد geo اگر فایل dat نباشد
+ * Gozar Core Bridge
+ *
+ * Xray CoreController handles proxy traffic.
+ * HEV bridges Android VPN TUN to the local SOCKS5 inbound.
  */
 public final class CoreBridge {
-    private static final String TAG = "GozarCore";
-    private static final StringBuilder ring = new StringBuilder();
-    private static int ringCount = 0;
-    private static String sLogPath = null;
-    private static String sFilesDir = null;
 
-    private static Object point;
-    private static Method startMethod, stopMethod;
-    private static Method loopStart, loopStop;
-    private static Method initEnv;
+    private static final String TAG = "GozarCore";
+
+    private static final String API_CLASS = "libv2ray.Libv2ray";
+    private static final String CALLBACK_CLASS =
+            "libv2ray.CoreCallbackHandler";
+
+    private static final StringBuilder ring = new StringBuilder();
+
+    private static int ringCount = 0;
+    private static String logPath;
+    private static String filesDir;
+
+    private static Object controller;
+    private static Object callbackProxy;
+
+    private static Method initCoreEnv;
+    private static Method newCoreController;
+    private static Method startLoop;
+    private static Method stopLoop;
+
     private static boolean running = false;
-    private static String  sApkPath = null;
 
     private CoreBridge() {}
 
-    public static void setApkPath(String p) { sApkPath = p; }
+    public static void setApkPath(String ignored) {
+        // Kept for compatibility with GozarVpnService.
+    }
 
-    public static void log(String m) {
-        Log.i(TAG, m);
+    public static void log(String message) {
+        Log.i(TAG, message);
+
         synchronized (ring) {
-            if (ringCount < 200) { ring.append(m).append('\n'); ringCount++; }
-            if (sLogPath != null) {
-                try {
-                    PrintWriter w = new PrintWriter(new FileWriter(sLogPath, true));
-                    w.println(m);
-                    w.close();
-                } catch (Throwable ignored) {}
+            if (ringCount < 400) {
+                ring.append(message).append('\n');
+                ringCount++;
+            }
+
+            if (logPath != null) {
+                try (PrintWriter writer =
+                             new PrintWriter(new FileWriter(logPath, true))) {
+                    writer.println(message);
+                } catch (Throwable ignored) {
+                }
             }
         }
     }
 
-    private static void tailFile(StringBuilder sb, File f, int lines) {
-        if (f == null || !f.exists() || f.length() == 0) return;
-        try {
-            BufferedReader r = new BufferedReader(new FileReader(f));
-            java.util.ArrayList<String> buf = new java.util.ArrayList<>();
+    private static void tailFile(
+            StringBuilder out, File file, int maxLines) {
+
+        if (file == null || !file.isFile()) {
+            return;
+        }
+
+        try (BufferedReader reader =
+                     new BufferedReader(new FileReader(file))) {
+
+            ArrayList<String> lines = new ArrayList<>();
             String line;
-            while ((line = r.readLine()) != null) {
-                buf.add(line);
-                if (buf.size() > lines) buf.remove(0);
+
+            while ((line = reader.readLine()) != null) {
+                lines.add(line);
+
+                if (lines.size() > maxLines) {
+                    lines.remove(0);
+                }
             }
-            r.close();
-            if (buf.isEmpty()) return;
-            sb.append("──── ").append(f.getName()).append(" ────\n");
-            for (String l : buf) sb.append(l).append('\n');
-        } catch (Throwable ignored) {}
+
+            if (!lines.isEmpty()) {
+                out.append("\n--- ")
+                        .append(file.getName())
+                        .append(" ---\n");
+
+                for (String item : lines) {
+                    out.append(item).append('\n');
+                }
+            }
+
+        } catch (Throwable ignored) {
+        }
     }
 
     public static String getLog() {
         synchronized (ring) {
-            StringBuilder sb = new StringBuilder(ring);
-            if (sFilesDir != null) {
-                tailFile(sb, new File(sFilesDir, "xray-error.log"), 60);
-                tailFile(sb, new File(sFilesDir, "xray-access.log"), 25);
-                tailFile(sb, new File(sFilesDir, "hev.log"), 40);
+            StringBuilder out = new StringBuilder(ring);
+
+            if (filesDir != null) {
+                tailFile(out,
+                        new File(filesDir, "xray-error.log"), 60);
+
+                tailFile(out,
+                        new File(filesDir, "xray-access.log"), 25);
+
+                tailFile(out,
+                        new File(filesDir, "hev.log"), 40);
             }
-            return sb.toString();
+
+            return out.toString();
         }
     }
 
-    private static void loadPrev(String logPath) {
-        try {
-            File f = new File(logPath);
-            if (!f.exists()) return;
-            BufferedReader r = new BufferedReader(new FileReader(f));
+    private static String readTail(String path, int maxLines) {
+        StringBuilder out = new StringBuilder();
+        File file = new File(path);
+
+        if (!file.isFile()) {
+            return "";
+        }
+
+        try (BufferedReader reader =
+                     new BufferedReader(new FileReader(file))) {
+
+            ArrayList<String> lines = new ArrayList<>();
             String line;
-            while ((line = r.readLine()) != null && ringCount < 200) {
-                ring.append(line).append('\n');
-                ringCount++;
+
+            while ((line = reader.readLine()) != null) {
+                lines.add(line);
+
+                if (lines.size() > maxLines) {
+                    lines.remove(0);
+                }
             }
-            r.close();
-            if (ringCount > 0) log("─── جلسهٔ قبلی ↑ ───");
-        } catch (Throwable ignored) {}
+
+            for (String item : lines) {
+                out.append(item).append('\n');
+            }
+
+        } catch (Throwable ignored) {
+        }
+
+        return out.toString();
     }
 
-    /** خواندن N خط آخر یک فایل متنی */
-    private static String readTail(String path, int lines) {
-        try {
-            File f = new File(path);
-            if (!f.exists()) return "";
-            BufferedReader r = new BufferedReader(new FileReader(f));
-            java.util.ArrayList<String> buf = new java.util.ArrayList<>();
-            String line;
-            while ((line = r.readLine()) != null) {
-                buf.add(line);
-                if (buf.size() > lines) buf.remove(0);
-            }
-            r.close();
-            StringBuilder sb = new StringBuilder();
-            for (String l : buf) sb.append(l).append('\n');
-            return sb.toString();
-        } catch (Throwable t) { return ""; }
-    }
+    private static String ensureFileLogs(
+            String json, String directory) {
 
-    /** تضمین لاگ فایلی Xray — مستقل از JS، در هر حالتی تزریق می‌شود */
-    private static String ensureFileLogs(String json, String filesDir) {
         try {
-            JSONObject cfg = new JSONObject(json);
-            JSONObject logObj = cfg.optJSONObject("log");
-            if (logObj == null) logObj = new JSONObject();
-            logObj.put("loglevel", "info");
-            logObj.put("error", filesDir + "/xray-error.log");
-            logObj.put("access", filesDir + "/xray-access.log");
-            cfg.put("log", logObj);
-            log("xray file logs ensured: " + filesDir + "/xray-error.log");
-            return cfg.toString();
-        } catch (Throwable t) {
-            log("ensureFileLogs failed: " + t);
+            JSONObject config = new JSONObject(json);
+            JSONObject logConfig = config.optJSONObject("log");
+
+            if (logConfig == null) {
+                logConfig = new JSONObject();
+            }
+
+            logConfig.put("loglevel", "warning");
+            logConfig.put("error",
+                    new File(directory, "xray-error.log")
+                            .getAbsolutePath());
+            logConfig.put("access",
+                    new File(directory, "xray-access.log")
+                            .getAbsolutePath());
+
+            config.put("log", logConfig);
+
+            return config.toString();
+
+        } catch (Throwable error) {
+            log("Cannot configure Xray logs: " + error);
             return json;
         }
     }
-
-    /* ═══════════ شروع تونل ═══════════ */
-
-    public static void start(String configJson, int tunFd, String filesDir, String nativeDir) throws Exception {
-        if (running) stop();
-
-        sLogPath = filesDir + "/gozar-core.log";
-        sFilesDir = filesDir;
-        loadPrev(sLogPath);
-        /* لاگ فایل‌های جلسهٔ قبل را پاک کن تا لاگ تازه جمع شود */
-        try { new File(filesDir, "xray-error.log").delete(); } catch (Throwable ignored) {}
-        try { new File(filesDir, "xray-access.log").delete(); } catch (Throwable ignored) {}
-        try { new File(filesDir, "hev.log").delete(); } catch (Throwable ignored) {}
-
-        log("device ABI: " + Build.SUPPORTED_ABIS[0] + " · arch: " + System.getProperty("os.arch"));
-        log("TunBridge: " + TunBridge.status());
-
-        discover();
-
-        if (initEnv != null) {
-            try {
-                Class<?>[] ps = initEnv.getParameterTypes();
-                Object[] a = new Object[ps.length];
-                for (int i = 0; i < ps.length; i++) a[i] = filesDir;
-                initEnv.invoke(null, a);
-                log("InitV2Env ok: " + n(initEnv));
-            } catch (Throwable t) { log("InitV2Env failed: " + t); }
-        }
-
-        boolean geoOk = new File(filesDir, "geoip.dat").exists()
-                     && new File(filesDir, "geosite.dat").exists();
-        if (!geoOk) configJson = sanitize(configJson);
-        else log("geo dat files present");
-
-        /* ═══ تضمین لاگ فایلی Xray — قطعی و مستقل از JS ═══ */
-        configJson = ensureFileLogs(configJson, filesDir);
-
-        try {
-            Method setter = findSupportSetter(point.getClass());
-            if (setter != null) {
-                Class<?> itf = setter.getParameterTypes()[0];
-                Object proxy = Proxy.newProxyInstance(itf.getClassLoader(),
-                        new Class<?>[]{itf}, supportHandler());
-                setter.invoke(point, proxy);
-                log("support bound: " + setter.getName() + " (" + itf.getName() + ")");
-            } else {
-                log("support setter NOT found — bindProcessToNetwork handles egress");
-            }
-        } catch (Throwable t) { log("support bind failed: " + t); }
-
-        if (startMethod == null) throw new Exception("core start method not found in AAR");
-        try {
-            startMethod.invoke(point, configJson);
-            log("core started: " + n(startMethod));
-        } catch (java.lang.reflect.InvocationTargetException ite) {
-            Throwable c = ite.getCause() != null ? ite.getCause() : ite;
-            /* اگر هسته خطا داد، متن xray-error را هم ضمیمه کن */
-            String errLog = readTail(filesDir + "/xray-error.log", 20);
-            if (!errLog.isEmpty()) {
-                throw new Exception("core start failed: " + c
-                        + "\n─── xray-error.log ───\n" + errLog);
-            }
-            throw new Exception("core start failed: " + c);
-        }
-
-        /* ═══ پل TUN: رسمی AAR اولویت دارد، hev فالبک ═══ */
-        boolean bridgeUp = false;
-        if (loopStart != null) {
-            log("trying official AAR loop: " + n(loopStart));
-            Object[] a = loopArgs(loopStart, tunFd);
-            if (invokeLoop(loopStart, a)) {
-                log("AAR loop started ✓ (official tun2socks)");
-                bridgeUp = true;
-            } else {
-                log("AAR loop invoke failed");
-            }
-        }
-        if (!bridgeUp) {
-            String yaml = filesDir + "/hev.yaml";
-            try { writeYaml(yaml, filesDir); } catch (Throwable t) { throw new Exception("write hev.yaml: " + t); }
-            int r = -999;
-            try { r = TunBridge.start(yaml, tunFd); } catch (Throwable t) { log("hev start threw: " + t); }
-            if (r == 0) {
-                log("hev TUN bridge started (fd=" + tunFd + ")");
-                bridgeUp = true;
-            } else {
-                log("ERROR: no TUN bridge available (hev rc=" + r + ")");
-            }
-        }
-        if (!bridgeUp) throw new Exception("no TUN bridge available");
-        running = true;
-        log("== تونل بالا آمد — لاگ‌های xray-error/access/hev در همین صفحه ==");
-    }
-
-    /* ═══════════ توقف ═══════════ */
-
-    public static void stop() {
-        if (!running) return;
-        try { TunBridge.stop(); } catch (Throwable ignored) {}
-        if (loopStop != null) {
-            try {
-                Class<?>[] ps = loopStop.getParameterTypes();
-                Object[] a = new Object[ps.length];
-                for (int i = 0; i < ps.length; i++) a[i] = defVal(ps[i]);
-                if (Modifier.isStatic(loopStop.getModifiers())) loopStop.invoke(null, a);
-                else if (point != null) loopStop.invoke(point, a);
-            } catch (Throwable ignored) {}
-        }
-        if (stopMethod != null && point != null) {
-            try { stopMethod.invoke(point); } catch (Throwable ignored) {}
-        }
-        running = false;
-        log("core stopped");
-    }
-
-    /* ═══════════ کشف API ═══════════ */
-
-    private static void discover() throws Exception {
-        if (point != null && startMethod != null) return;
-
-        Class<?> pc = null;
-        /* هستهٔ رسمی اولویت دارد؛ wrapper قدیمی فالبک */
-        String[] names = { "libv2ray.V2RayPoint", "v2ray.V2RayPoint", "gozar.V2RayPoint", "go.V2RayPoint" };
-        for (String nm : names) {
-            pc = classFor(nm);
-            if (pc != null) { log("V2RayPoint at " + nm); break; }
-        }
-
-        if (pc == null && sApkPath != null) {
-            try {
-                DexFile dex = new DexFile(sApkPath);
-                Enumeration<String> en = dex.entries();
-                int scanned = 0;
-                while (en.hasMoreElements() && scanned < 5000) {
-                    String cn = en.nextElement();
-                    if (cn.startsWith("java.") || cn.startsWith("javax.")
-                            || cn.startsWith("android.") || cn.startsWith("androidx.")
-                            || cn.startsWith("kotlin.") || cn.contains("$")) { scanned++; continue; }
-                    scanned++;
-                    if (pc == null && cn.endsWith("V2RayPoint")) {
-                        try {
-                            pc = Class.forName(cn, false, CoreBridge.class.getClassLoader());
-                            log("V2RayPoint found via dex scan: " + cn);
-                        } catch (Throwable ignored) {}
-                    }
-                }
-            } catch (Throwable t) { log("dex scan failed: " + t); }
-        }
-
-        if (pc == null) throw new Exception("V2RayPoint class NOT found in AAR");
-
-        point = staticInstance(pc);
-        if (point == null) {
-            try {
-                point = pc.getDeclaredConstructor().newInstance();
-                log("V2RayPoint instantiated via constructor");
-            } catch (Throwable t) {
-                throw new Exception("V2RayPoint instance not found: " + t);
-            }
-        }
-
-        for (Method m : pc.getMethods()) {
-            String n = m.getName().toLowerCase();
-            Class<?>[] ps = m.getParameterTypes();
-            if (startMethod == null && ps.length == 1 && ps[0] == String.class
-                    && (n.contains("run") || n.contains("start"))) startMethod = m;
-            if (stopMethod == null && ps.length == 0 && n.contains("stop")
-                    && !n.contains("loop")) stopMethod = m;
-        }
-
-        scanClass(classFor("libv2ray.Libv2ray"));
-        scanClass(classFor("v2ray.Libv2ray"));
-        scanClass(classFor("v2ray.Tun2Socks"));
-        scanClass(classFor("gozar.Gozar"));
-
-        if (sApkPath != null) {
-            try {
-                DexFile dex = new DexFile(sApkPath);
-                Enumeration<String> en = dex.entries();
-                int scanned = 0;
-                while (en.hasMoreElements() && scanned < 2000) {
-                    String cn = en.nextElement();
-                    if (!cn.startsWith("v2ray.") && !cn.startsWith("gozar.") && !cn.startsWith("libv2ray.")) continue;
-                    if (cn.contains("$")) continue;
-                    scanned++;
-                    try {
-                        scanClass(Class.forName(cn, false, CoreBridge.class.getClassLoader()));
-                    } catch (Throwable ignored) {}
-                }
-                log("api scan: " + scanned + " core classes");
-            } catch (Throwable t) { log("api scan skipped: " + t); }
-        }
-
-        log("discovered: start=" + n(startMethod) + " stop=" + n(stopMethod)
-                + " initEnv=" + n(initEnv)
-                + " loop=" + (loopStart != null ? n(loopStart) : "null"));
-
-        if (startMethod == null) throw new Exception("no run/start(String) method on V2RayPoint");
-    }
-
-    private static void scanClass(Class<?> c) {
-        if (c == null) return;
-        try {
-            for (Method m : c.getDeclaredMethods()) {
-                if (!Modifier.isStatic(m.getModifiers())) continue;
-                String nn = m.getName().toLowerCase();
-                Class<?>[] ps = m.getParameterTypes();
-                boolean strFirst = ps.length >= 1 && ps[0] == String.class;
-                boolean fdFirst  = ps.length >= 1 && (ps[0] == int.class || ps[0] == long.class);
-                if (initEnv == null && strFirst && nn.contains("initv2env")) initEnv = m;
-                if (loopStart == null && fdFirst
-                        && (nn.contains("startloop") || nn.contains("tun2socks"))) loopStart = m;
-                if (loopStop == null && ps.length == 0 && nn.contains("stoploop")) loopStop = m;
-            }
-        } catch (Throwable ignored) {}
-    }
-
-    private static Object staticInstance(Class<?> pc) throws Exception {
-        for (Field f : pc.getFields()) {
-            if (!Modifier.isStatic(f.getModifiers())) continue;
-            String n = f.getName().toLowerCase();
-            if (n.contains("instance") || n.equals("default")) return f.get(null);
-        }
-        for (Field f : pc.getFields())
-            if (Modifier.isStatic(f.getModifiers())) return f.get(null);
-        for (Method m : pc.getMethods()) {
-            if (Modifier.isStatic(m.getModifiers()) && m.getParameterTypes().length == 0
-                    && m.getReturnType() == pc && m.getName().toLowerCase().contains("instance")) {
-                return m.invoke(null);
-            }
-        }
-        return null;
-    }
-
-    private static Class<?> classFor(String name) {
-        try { return Class.forName(name); } catch (Throwable t) { return null; }
-    }
-    private static String n(Method m) {
-        return m == null ? "null" : m.getDeclaringClass().getSimpleName() + "." + m.getName();
-    }
-
-    private static Method findSupportSetter(Class<?> pc) {
-        for (Method m : pc.getMethods()) {
-            Class<?>[] ps = m.getParameterTypes();
-            if (ps.length != 1 || !ps[0].isInterface()) continue;
-            if (ps[0].getName().startsWith("java.")) continue;
-            String nn = m.getName().toLowerCase();
-            if (nn.contains("support") || nn.contains("vpn") || nn.contains("callback")) return m;
-        }
-        return null;
-    }
-
-    private static InvocationHandler supportHandler() {
-        return (proxy, method, args) -> {
-            String nn = method.getName().toLowerCase();
-            if (nn.equals("hashcode")) return System.identityHashCode(proxy);
-            if (nn.equals("equals"))   return proxy == args[0];
-            if (nn.equals("tostring")) return "GozarSupportProxy";
-            try {
-                if (nn.contains("protect")) {
-                    Object a = (args != null && args.length > 0) ? args[0] : null;
-                    long fd = (a instanceof Number) ? ((Number) a).longValue() : -1L;
-                    boolean ok = GozarVpnService.protectFd((int) fd);
-                    if (!ok) log("protect(fd=" + fd + ") FAILED");
-                    return retFor(method, ok ? 0L : -1L);
-                }
-                if (nn.contains("fatal")) {
-                    log("FATAL from core: " + (args != null && args.length > 0 ? String.valueOf(args[0]) : "?"));
-                    GozarVpnService.coreFatal();
-                    return retFor(method, 0L);
-                }
-                if (nn.contains("emit") || nn.contains("status") || nn.contains("log")) {
-                    if (args != null && args.length >= 2 && args[1] != null) log("core: " + args[1]);
-                    else if (args != null && args.length >= 1 && args[0] != null) log("core: " + args[0]);
-                    return retFor(method, 0L);
-                }
-            } catch (Throwable th) { log("support cb: " + th); }
-            return retFor(method, 0L);
-        };
-    }
-
-    private static Object retFor(Method m, long v) {
-        Class<?> r = m.getReturnType();
-        if (r == void.class) return null;
-        if (r == boolean.class) return Boolean.TRUE;
-        if (r == long.class || r == Long.class) return v;
-        if (r == int.class || r == Integer.class) return (int) v;
-        if (r == short.class) return (short) v;
-        return null;
-    }
-
-    private static Object defVal(Class<?> p) {
-        if (p == boolean.class) return Boolean.FALSE;
-        if (p == long.class) return 0L;
-        if (p == int.class) return 0;
-        if (p == short.class) return (short) 0;
-        if (p == double.class) return 0d;
-        if (p == float.class) return 0f;
-        return null;
-    }
-
-    private static Object[] loopArgs(Method m, int tunFd) {
-        Class<?>[] ps = m.getParameterTypes();
-        Object[] a = new Object[ps.length];
-        int numeric = 0;
-        for (int i = 0; i < ps.length; i++) {
-            Class<?> p = ps[i];
-            if (p == long.class)  a[i] = (numeric++ == 0) ? (long) tunFd : 0L;
-            else if (p == int.class) a[i] = (numeric++ == 0) ? tunFd : 8500;
-            else if (p == String.class) a[i] = "127.0.0.1";
-            else if (p == boolean.class) a[i] = Boolean.FALSE;
-            else if (p == short.class) a[i] = (short) 0;
-            else if (p == double.class) a[i] = 0d;
-            else if (p == float.class) a[i] = 0f;
-            else a[i] = null;
-        }
-        return a;
-    }
-
-    private static boolean invokeLoop(Method m, Object[] args) {
-        try {
-            if (Modifier.isStatic(m.getModifiers())) { m.invoke(null, args); return true; }
-        } catch (Throwable t) { log("loop static: " + t); }
-        try { m.invoke(point, args); return true; } catch (Throwable t) { log("loop point: " + t); }
-        return false;
-    }
-
-    /* ═══════════ hev.yaml — فالبک ═══════════ */
-
-    private static void writeYaml(String path, String filesDir) throws Exception {
-        int mtu = 8500;
-        String tos = "300,60";
-        int port = 10808;
-        try {
-            File vf = new File(filesDir, "gozar-vpn.json");
-            if (vf.exists()) {
-                BufferedReader r = new BufferedReader(new FileReader(vf));
-                StringBuilder sb = new StringBuilder(); String line;
-                while ((line = r.readLine()) != null) sb.append(line);
-                r.close();
-                JSONObject v = new JSONObject(sb.toString());
-                int m = v.optInt("mtu", 0);
-                if (m >= 1280 && m <= 9000) mtu = m;
-                tos = v.optString("hevTimeouts", "300,60");
-                port = v.optInt("socksPort", 10808);
-            }
-        } catch (Throwable ignored) {}
-        StringBuilder y = new StringBuilder();
-        y.append("tunnel:\n");
-        y.append("  mtu: ").append(mtu).append('\n');
-        y.append("  ipv4: 26.26.26.1\n");
-        y.append("socks5:\n");
-        y.append("  address: 127.0.0.1\n");
-        y.append("  port: ").append(port).append('\n');
-        y.append("  udp: 'udp'\n");
-        y.append("misc:\n");
-        y.append("  log-file: ").append(filesDir).append("/hev.log\n");
-        y.append("  log-level: info\n");
-        try {
-            String[] p = tos.split(",");
-            if (p.length >= 1) y.append("  idle_timeout: ").append(p[0].trim()).append('\n');
-            if (p.length >= 2) y.append("  udp_timeout: ").append(p[1].trim()).append('\n');
-        } catch (Throwable ignored) {}
-        FileWriter w = new FileWriter(path);
-        w.write(y.toString());
-        w.close();
-        log("hev.yaml written (socks=" + port + ", mtu=" + mtu + ")");
-    }
-
-    /* ═══════════ پاک‌سازی قواعد geo ═══════════ */
 
     private static String sanitize(String json) {
         try {
-            JSONObject cfg = new JSONObject(json);
-            JSONObject routing = cfg.optJSONObject("routing");
-            if (routing != null) {
-                JSONArray rules = routing.optJSONArray("rules");
-                if (rules != null) {
-                    JSONArray keep = new JSONArray();
-                    for (int i = 0; i < rules.length(); i++) {
-                        JSONObject r = rules.optJSONObject(i);
-                        if (r == null) continue;
-                        boolean usesGeo = false;
-                        JSONArray dom = r.optJSONArray("domain");
-                        if (dom != null) for (int j = 0; j < dom.length(); j++)
-                            if (String.valueOf(dom.opt(j)).startsWith("geosite:")) usesGeo = true;
-                        JSONArray ip = r.optJSONArray("ip");
-                        if (ip != null) for (int j = 0; j < ip.length(); j++)
-                            if (String.valueOf(ip.opt(j)).startsWith("geoip:")) usesGeo = true;
-                        if (!usesGeo) keep.put(r);
+            JSONObject config = new JSONObject(json);
+            JSONObject routing = config.optJSONObject("routing");
+
+            if (routing == null) {
+                return config.toString();
+            }
+
+            JSONArray rules = routing.optJSONArray("rules");
+
+            if (rules == null) {
+                return config.toString();
+            }
+
+            JSONArray kept = new JSONArray();
+
+            for (int i = 0; i < rules.length(); i++) {
+                JSONObject rule = rules.optJSONObject(i);
+
+                if (rule == null) {
+                    continue;
+                }
+
+                boolean usesGeo = false;
+
+                JSONArray domains = rule.optJSONArray("domain");
+
+                if (domains != null) {
+                    for (int j = 0; j < domains.length(); j++) {
+                        String value =
+                                String.valueOf(domains.opt(j));
+
+                        if (value.startsWith("geosite:")) {
+                            usesGeo = true;
+                            break;
+                        }
                     }
-                    routing.put("rules", keep);
+                }
+
+                JSONArray ips = rule.optJSONArray("ip");
+
+                if (ips != null) {
+                    for (int j = 0; j < ips.length(); j++) {
+                        String value =
+                                String.valueOf(ips.opt(j));
+
+                        if (value.startsWith("geoip:")) {
+                            usesGeo = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!usesGeo) {
+                    kept.put(rule);
                 }
             }
-            log("config sanitized (geo rules removed)");
-            return cfg.toString();
-        } catch (Throwable t) {
-            log("sanitize failed: " + t);
+
+            routing.put("rules", kept);
+
+            log("Geo routing rules removed because data files are missing");
+
+            return config.toString();
+
+        } catch (Throwable error) {
+            log("Config sanitize failed: " + error);
             return json;
+        }
+    }
+
+    public static synchronized void start(
+            String configJson,
+            int tunFd,
+            String directory,
+            String nativeDir) throws Exception {
+
+        if (running) {
+            stop();
+        }
+
+        filesDir = directory;
+        logPath = new File(directory, "gozar-core.log")
+                .getAbsolutePath();
+
+        log("Starting Gozar VPN");
+        log("Android ABI: "
+                + (Build.SUPPORTED_ABIS.length > 0
+                ? Build.SUPPORTED_ABIS[0] : "unknown"));
+        log("TUN fd: " + tunFd);
+        log("HEV status: " + TunBridge.status());
+
+        File base = new File(directory);
+
+        boolean hasGeoFiles =
+                new File(base, "geoip.dat").isFile()
+                && new File(base, "geosite.dat").isFile();
+
+        if (!hasGeoFiles) {
+            configJson = sanitize(configJson);
+        }
+
+        configJson = ensureFileLogs(configJson, directory);
+
+        boolean coreStarted = false;
+        boolean hevStarted = false;
+
+        try {
+            discover();
+
+            // Initialize paths before creating the core controller.
+            invokeInitCoreEnv(directory);
+
+            if (controller == null) {
+                controller = invokeNewCoreController();
+            }
+
+            if (controller == null) {
+                throw new Exception(
+                        "newCoreController returned null");
+            }
+
+            // The HEV bridge owns the Android TUN fd.
+            // Do not pass that fd to Xray's StartLoop.
+            Object result = invokeStartLoop(configJson);
+
+            checkGoError(result, "StartLoop");
+
+            coreStarted = true;
+            log("Xray CoreController started");
+
+            String yamlPath =
+                    new File(directory, "hev.yaml")
+                            .getAbsolutePath();
+
+            writeYaml(yamlPath, directory);
+
+            int rc = TunBridge.start(yamlPath, tunFd);
+
+            if (rc != 0) {
+                throw new Exception(
+                        "HEV failed to start; return code=" + rc);
+            }
+
+            hevStarted = true;
+            running = true;
+
+            log("Gozar VPN started successfully");
+
+        } catch (Throwable error) {
+
+            if (hevStarted) {
+                try {
+                    TunBridge.stop();
+                } catch (Throwable ignored) {
+                }
+            }
+
+            if (coreStarted) {
+                try {
+                    invokeStopLoop();
+                } catch (Throwable ignored) {
+                }
+            }
+
+            running = false;
+
+            Throwable cause = error;
+
+            if (error instanceof
+                    java.lang.reflect.InvocationTargetException) {
+
+                Throwable inner =
+                        ((java.lang.reflect.InvocationTargetException)
+                                error).getCause();
+
+                if (inner != null) {
+                    cause = inner;
+                }
+            }
+
+            String details = readTail(
+                    new File(directory, "xray-error.log")
+                            .getAbsolutePath(),
+                    20);
+
+            throw new Exception(
+                    "VPN start failed: " + cause
+                    + (details.isEmpty()
+                    ? ""
+                    : "\n--- xray-error.log ---\n" + details),
+                    cause);
+        }
+    }
+
+    public static synchronized void stop() {
+        try {
+            TunBridge.stop();
+        } catch (Throwable error) {
+            log("HEV stop error: " + error);
+        }
+
+        if (controller != null && stopLoop != null) {
+            try {
+                invokeStopLoop();
+            } catch (Throwable error) {
+                log("Core stop error: " + error);
+            }
+        }
+
+        running = false;
+        log("Gozar core stopped");
+    }
+
+    private static void discover() throws Exception {
+        if (initCoreEnv != null
+                && newCoreController != null
+                && startLoop != null
+                && stopLoop != null) {
+            return;
+        }
+
+        Class<?> api;
+
+        try {
+            api = Class.forName(API_CLASS);
+        } catch (Throwable error) {
+            throw new Exception(
+                    "Cannot load " + API_CLASS
+                    + ". Check that AndroidLibXrayLite AAR "
+                    + "is included in the app.", error);
+        }
+
+        Class<?> callbackType;
+
+        try {
+            callbackType = Class.forName(CALLBACK_CLASS);
+        } catch (Throwable error) {
+            throw new Exception(
+                    "Cannot load " + CALLBACK_CLASS, error);
+        }
+
+        initCoreEnv =
+                findMethod(api, "initCoreEnv", 2, true);
+
+        newCoreController =
+                findMethod(api, "newCoreController", 1, true);
+
+        if (initCoreEnv == null) {
+            throw new Exception(
+                    "libv2ray.InitCoreEnv method not found");
+        }
+
+        if (newCoreController == null) {
+            throw new Exception(
+                    "libv2ray.NewCoreController method not found");
+        }
+
+        Class<?> controllerType =
+                newCoreController.getReturnType();
+
+        startLoop =
+                findMethod(controllerType, "startLoop", 2, false);
+
+        stopLoop =
+                findMethod(controllerType, "stopLoop", 0, false);
+
+        if (startLoop == null || stopLoop == null) {
+            throw new Exception(
+                    "CoreController StartLoop/StopLoop methods missing");
+        }
+
+        callbackProxy = Proxy.newProxyInstance(
+                callbackType.getClassLoader(),
+                new Class<?>[]{callbackType},
+                new InvocationHandler() {
+                    @Override
+                    public Object invoke(
+                            Object proxy,
+                            Method method,
+                            Object[] args) {
+
+                        String name = method.getName();
+
+                        if ("toString".equals(name)) {
+                            return "GozarCoreCallback";
+                        }
+
+                        if ("hashCode".equals(name)) {
+                            return System.identityHashCode(proxy);
+                        }
+
+                        if ("equals".equals(name)) {
+                            return args != null
+                                    && args.length > 0
+                                    && proxy == args[0];
+                        }
+
+                        if ("onEmitStatus".equalsIgnoreCase(name)) {
+                            if (args != null && args.length > 1) {
+                                log("Xray status: " + args[1]);
+                            }
+                        } else if ("startup".equalsIgnoreCase(name)) {
+                            log("Xray startup callback");
+                        } else if ("shutdown".equalsIgnoreCase(name)) {
+                            log("Xray shutdown callback");
+                        }
+
+                        if (method.getReturnType() == int.class) {
+                            return 0;
+                        }
+
+                        return null;
+                    }
+                });
+
+        log("libv2ray API discovered");
+        log("Controller class: " + controllerType.getName());
+        log("Start method: " + startLoop);
+        log("Stop method: " + stopLoop);
+    }
+
+    private static Method findMethod(
+            Class<?> type,
+            String name,
+            int parameterCount,
+            boolean requireStatic) {
+
+        for (Method method : type.getMethods()) {
+            if (!method.getName().equals(name)) {
+                continue;
+            }
+
+            if (method.getParameterTypes().length
+                    != parameterCount) {
+                continue;
+            }
+
+            boolean isStatic =
+                    Modifier.isStatic(method.getModifiers());
+
+            if (isStatic != requireStatic) {
+                continue;
+            }
+
+            return method;
+        }
+
+        return null;
+    }
+
+    private static void invokeInitCoreEnv(
+            String directory) throws Exception {
+
+        try {
+            initCoreEnv.invoke(null, directory, "");
+            log("InitCoreEnv completed");
+
+        } catch (Throwable error) {
+            throw new Exception(
+                    "InitCoreEnv failed: " + unwrap(error),
+                    unwrap(error));
+        }
+    }
+
+    private static Object invokeNewCoreController()
+            throws Exception {
+
+        try {
+            return newCoreController.invoke(null, callbackProxy);
+
+        } catch (Throwable error) {
+            throw new Exception(
+                    "NewCoreController failed: " + unwrap(error),
+                    unwrap(error));
+        }
+    }
+
+    private static Object invokeStartLoop(String config)
+            throws Exception {
+
+        try {
+            Class<?> fdType =
+                    startLoop.getParameterTypes()[1];
+
+            Object zeroFd;
+
+            if (fdType == int.class
+                    || fdType == Integer.class) {
+                zeroFd = 0;
+            } else if (fdType == long.class
+                    || fdType == Long.class) {
+                zeroFd = 0L;
+            } else {
+                throw new Exception(
+                        "Unexpected StartLoop fd parameter: "
+                        + fdType.getName());
+            }
+
+            return startLoop.invoke(
+                    controller, config, zeroFd);
+
+        } catch (Throwable error) {
+            throw new Exception(
+                    "StartLoop failed: " + unwrap(error),
+                    unwrap(error));
+        }
+    }
+
+    private static void invokeStopLoop() throws Exception {
+        stopLoop.invoke(controller);
+    }
+
+    private static Throwable unwrap(Throwable error) {
+        if (error instanceof
+                java.lang.reflect.InvocationTargetException) {
+
+            Throwable cause =
+                    ((java.lang.reflect.InvocationTargetException)
+                            error).getCause();
+
+            if (cause != null) {
+                return cause;
+            }
+        }
+
+        return error;
+    }
+
+    private static void checkGoError(
+            Object result, String operation) throws Exception {
+
+        if (result instanceof String) {
+            String message = ((String) result).trim();
+
+            if (!message.isEmpty()) {
+                throw new Exception(
+                        operation + " returned error: " + message);
+            }
+        }
+
+        if (result instanceof Throwable) {
+            throw new Exception(
+                    operation + " failed: " + result);
+        }
+    }
+
+    private static void writeYaml(
+            String path, String directory) throws Exception {
+
+        int mtu = 8500;
+        int socksPort = 10808;
+        String timeouts = "300,60";
+
+        File paramsFile =
+                new File(directory, "gozar-vpn.json");
+
+        if (paramsFile.isFile()) {
+            try (BufferedReader reader =
+                         new BufferedReader(
+                                 new FileReader(paramsFile))) {
+
+                StringBuilder content = new StringBuilder();
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    content.append(line);
+                }
+
+                JSONObject params =
+                        new JSONObject(content.toString());
+
+                int configuredMtu = params.optInt("mtu", mtu);
+
+                if (configuredMtu >= 1280
+                        && configuredMtu <= 9000) {
+                    mtu = configuredMtu;
+                }
+
+                int configuredPort =
+                        params.optInt("socksPort", socksPort);
+
+                if (configuredPort >= 1
+                        && configuredPort <= 65535) {
+                    socksPort = configuredPort;
+                }
+
+                timeouts = params.optString(
+                        "hevTimeouts", timeouts);
+
+            } catch (Throwable error) {
+                log("HEV parameters ignored: " + error);
+            }
+        }
+
+        StringBuilder yaml = new StringBuilder();
+
+        yaml.append("tunnel:\n");
+        yaml.append("  mtu: ").append(mtu).append('\n');
+        yaml.append("  ipv4: 26.26.26.1\n");
+
+        yaml.append("socks5:\n");
+        yaml.append("  address: 127.0.0.1\n");
+        yaml.append("  port: ").append(socksPort).append('\n');
+        yaml.append("  udp: 'udp'\n");
+
+        yaml.append("misc:\n");
+        yaml.append("  log-file: ")
+                .append(new File(directory, "hev.log")
+                        .getAbsolutePath())
+                .append('\n');
+
+        yaml.append("  log-level: info\n");
+
+        String[] parts = timeouts.split(",");
+
+        if (parts.length > 0) {
+            appendTimeout(yaml, "idle_timeout", parts[0]);
+        }
+
+        if (parts.length > 1) {
+            appendTimeout(yaml, "udp_timeout", parts[1]);
+        }
+
+        try (FileWriter writer = new FileWriter(path)) {
+            writer.write(yaml.toString());
+        }
+
+        log("HEV YAML created; SOCKS port=" + socksPort);
+    }
+
+    private static void appendTimeout(
+            StringBuilder yaml, String key, String raw) {
+
+        try {
+            int value = Integer.parseInt(raw.trim());
+
+            if (value >= 0 && value <= 86400) {
+                yaml.append("  ")
+                        .append(key)
+                        .append(": ")
+                        .append(value)
+                        .append('\n');
+            }
+
+        } catch (Throwable ignored) {
         }
     }
 }
