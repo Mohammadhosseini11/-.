@@ -8,104 +8,122 @@ permissions:
 
 jobs:
   core:
+    name: Build AndroidLibXrayLite AAR
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+
     steps:
-      - name: دریافت سورس
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: بررسی سورس AndroidLibXrayLite
+      - name: Validate source layout
         shell: bash
         run: |
           set -euo pipefail
-          if [ ! -f "AndroidLibXrayLite/go.mod" ]; then
-            echo "FATAL: AndroidLibXrayLite/go.mod در ریشهٔ مخزن پیدا نشد"
-            exit 1
-          fi
-          if ! grep -q '^package libv2ray' AndroidLibXrayLite/libv2ray_main.go; then
-            echo "FATAL: فایل‌های پکیج libv2ray در مسیر مورد انتظار پیدا نشدند"
-            exit 1
-          fi
-          echo "== فایل‌های Go =="
+          test -f AndroidLibXrayLite/go.mod || { echo "ERROR: AndroidLibXrayLite/go.mod not found"; exit 1; }
+          test -f AndroidLibXrayLite/libv2ray_main.go || { echo "ERROR: AndroidLibXrayLite/libv2ray_main.go not found"; exit 1; }
+          grep -q '^package libv2ray' AndroidLibXrayLite/libv2ray_main.go || { echo "ERROR: unexpected Go package name"; exit 1; }
+          echo "Go module settings:"
+          sed -n '1,12p' AndroidLibXrayLite/go.mod
+          echo "Go source files:"
           find AndroidLibXrayLite -maxdepth 1 -type f -name '*.go' -print
-          echo "== نسخهٔ Go در go.mod =="
-          grep -E '^(module|go) ' AndroidLibXrayLite/go.mod
 
-      - name: نصب Java 17
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: نصب Go
+      - name: Set up Go from go.mod
         uses: actions/setup-go@v5
         with:
           go-version-file: AndroidLibXrayLite/go.mod
           cache: true
           cache-dependency-path: AndroidLibXrayLite/go.sum
 
-      - name: آماده‌سازی Android NDK
+      - name: Install Android NDK
         shell: bash
         run: |
           set -euo pipefail
-          NDK="$ANDROID_HOME/ndk/26.3.11579264"
+          NDK_VERSION="26.3.11579264"
+          NDK="$ANDROID_HOME/ndk/$NDK_VERSION"
           if [ ! -d "$NDK" ]; then
             yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
-            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;26.3.11579264"
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION"
           fi
           echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
           echo "NDK_PATH=$NDK" >> "$GITHUB_ENV"
 
-      - name: نصب gomobile و gobind
+      - name: Install gomobile and gobind matching go.mod
         shell: bash
         working-directory: AndroidLibXrayLite
         run: |
           set -euo pipefail
-          export PATH="$(go env GOPATH)/bin:$PATH"
-          go install golang.org/x/mobile/cmd/gomobile@latest
-          go install golang.org/x/mobile/cmd/gobind@latest
-          gomobile init
+          MOBILE_VERSION="$(go list -m -f '{{.Version}}' golang.org/x/mobile)"
+          echo "Using golang.org/x/mobile $MOBILE_VERSION"
+          go install "golang.org/x/mobile/cmd/gomobile@$MOBILE_VERSION"
+          go install "golang.org/x/mobile/cmd/gobind@$MOBILE_VERSION"
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          gomobile init
+          gomobile version || true
 
-      - name: ساخت AAR رسمی
+      - name: Build libv2ray.aar
         shell: bash
         run: |
           set -euo pipefail
-          export PATH="$(go env GOPATH)/bin:$PATH"
-          export GOTOOLCHAIN=auto
           mkdir -p app/libs
           cd AndroidLibXrayLite
           go mod download
+          export CGO_ENABLED=1
+          export GOTOOLCHAIN=auto
           set +e
-          gomobile bind -v -target=android -androidapi 24 \
-            -ldflags='-s -w' -o ../app/libs/libv2ray.aar . 2>&1 | tee gomobile.log
+          gomobile bind -v -target=android -androidapi 24 -ldflags='-s -w' -o ../app/libs/libv2ray.aar . 2>&1 | tee gomobile-build.log
           RC=${PIPESTATUS[0]}
           set -e
           if [ "$RC" -ne 0 ]; then
-            echo "خطای gomobile؛ ۱۰۰ خط آخر گزارش:"
-            tail -100 gomobile.log
-            mkdir -p ../faillog
-            cp gomobile.log ../faillog/gomobile.log
+            echo "gomobile failed; last 120 log lines:"
+            tail -120 gomobile-build.log
             exit "$RC"
           fi
-          echo "ساخت AAR با موفقیت انجام شد."
+          test -s ../app/libs/libv2ray.aar
 
-      - name: اعتبارسنجی AAR
+      - name: Validate generated AAR API
         shell: bash
         run: |
           set -euo pipefail
           test -s app/libs/libv2ray.aar
-          rm -rf /tmp/gozar-aar-check
-          mkdir -p /tmp/gozar-aar-check
-          unzip -q app/libs/libv2ray.aar classes.jar -d /tmp/gozar-aar-check
-          echo "== کلاس‌های تولیدشده =="
-          jar tf /tmp/gozar-aar-check/classes.jar | head -80
-          if ! jar tf /tmp/gozar-aar-check/classes.jar | grep -q 'libv2ray/CoreController.class'; then
-            echo "FATAL: کلاس CoreController در AAR تولیدشده پیدا نشد"
+          mkdir -p /tmp/gozar-aar
+          unzip -o -q app/libs/libv2ray.aar classes.jar -d /tmp/gozar-aar
+          echo "Generated Java classes:"
+          jar tf /tmp/gozar-aar/classes.jar | grep -E 'CoreController|CoreCallbackHandler|Libv2ray' | head -60 || true
+          jar tf /tmp/gozar-aar/classes.jar | grep -q 'go/libv2ray/CoreController.class' || {
+            echo "ERROR: expected go.libv2ray.CoreController was not found."
+            echo "Inspect the generated classes above; the Java package name may have changed."
             exit 1
-          fi
-          echo "AAR معتبر است؛ اندازه: $(stat -c%s app/libs/libv2ray.aar) bytes"
+          }
+          echo "AAR validation passed. Size: $(stat -c%s app/libs/libv2ray.aar) bytes"
 
-      - name: ذخیره AAR در GitHub Release
+      - name: Upload AAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libv2ray-android-aar
+          path: app/libs/libv2ray.aar
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: androidlibxraylite-build-log
+          path: AndroidLibXrayLite/gomobile-build.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Publish AAR to core-aar release
+        if: success()
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
@@ -113,24 +131,7 @@ jobs:
           set -euo pipefail
           if ! gh release view core-aar -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create core-aar -R "$GITHUB_REPOSITORY" \
-              --title "Official AndroidLibXrayLite AAR" \
-              --notes "AAR ساخته‌شده از سورس AndroidLibXrayLite همین مخزن"
+              --title "AndroidLibXrayLite AAR" \
+              --notes "Generated Android AAR for the Gozar project."
           fi
           gh release upload core-aar app/libs/libv2ray.aar --clobber -R "$GITHUB_REPOSITORY"
-
-      - name: آپلود Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: libv2ray-official
-          path: app/libs/libv2ray.aar
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: آپلود گزارش شکست
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: core-official-fail-logs
-          path: faillog/
-          if-no-files-found: ignore
-          retention-days: 7
