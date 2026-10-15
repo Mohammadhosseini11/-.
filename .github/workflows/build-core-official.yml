@@ -20,11 +20,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f AndroidLibXrayLite/go.mod || { echo "ERROR: AndroidLibXrayLite/go.mod not found"; exit 1; }
-          test -f AndroidLibXrayLite/libv2ray_main.go || { echo "ERROR: AndroidLibXrayLite/libv2ray_main.go not found"; exit 1; }
-          grep -q '^package libv2ray' AndroidLibXrayLite/libv2ray_main.go || { echo "ERROR: unexpected Go package name"; exit 1; }
+
+          test -f AndroidLibXrayLite/go.mod || {
+            echo "ERROR: AndroidLibXrayLite/go.mod not found"
+            exit 1
+          }
+
+          test -f AndroidLibXrayLite/libv2ray_main.go || {
+            echo "ERROR: libv2ray_main.go not found"
+            exit 1
+          }
+
+          grep -q '^package libv2ray' AndroidLibXrayLite/libv2ray_main.go || {
+            echo "ERROR: unexpected Go package name"
+            exit 1
+          }
+
           echo "Go module settings:"
           sed -n '1,12p' AndroidLibXrayLite/go.mod
+
           echo "Go source files:"
           find AndroidLibXrayLite -maxdepth 1 -type f -name '*.go' -print
 
@@ -41,30 +55,68 @@ jobs:
           cache: true
           cache-dependency-path: AndroidLibXrayLite/go.sum
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Install Android NDK
         shell: bash
         run: |
           set -euo pipefail
-          NDK_VERSION="26.3.11579264"
-          NDK="$ANDROID_HOME/ndk/$NDK_VERSION"
-          if [ ! -d "$NDK" ]; then
-            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
-            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION"
-          fi
-          echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
-          echo "NDK_PATH=$NDK" >> "$GITHUB_ENV"
 
-      - name: Install gomobile and gobind matching go.mod
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+
+          if [ -z "$SDK" ]; then
+            echo "ERROR: Android SDK path not found"
+            exit 1
+          fi
+
+          NDK_VERSION="26.3.11579264"
+
+          if command -v sdkmanager >/dev/null 2>&1; then
+            SDKMANAGER="$(command -v sdkmanager)"
+          else
+            SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          fi
+
+          if [ ! -x "$SDKMANAGER" ]; then
+            echo "ERROR: sdkmanager not found: $SDKMANAGER"
+            exit 1
+          fi
+
+          "$SDKMANAGER" --sdk_root="$SDK" --install "ndk;$NDK_VERSION"
+
+          NDK="$SDK/ndk/$NDK_VERSION"
+
+          if [ ! -d "$NDK" ]; then
+            echo "ERROR: NDK installation failed: $NDK"
+            find "$SDK/ndk" -mindepth 1 -maxdepth 1 -type d -print 2>/dev/null || true
+            exit 1
+          fi
+
+          {
+            echo "ANDROID_NDK_HOME=$NDK"
+            echo "ANDROID_NDK_ROOT=$NDK"
+            echo "NDK_PATH=$NDK"
+          } >> "$GITHUB_ENV"
+
+          echo "NDK installed successfully: $NDK"
+
+      - name: Install gomobile and gobind
         shell: bash
         working-directory: AndroidLibXrayLite
         run: |
           set -euo pipefail
+
           MOBILE_VERSION="$(go list -m -f '{{.Version}}' golang.org/x/mobile)"
+
           echo "Using golang.org/x/mobile $MOBILE_VERSION"
+
           go install "golang.org/x/mobile/cmd/gomobile@$MOBILE_VERSION"
           go install "golang.org/x/mobile/cmd/gobind@$MOBILE_VERSION"
+
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
           export PATH="$(go env GOPATH)/bin:$PATH"
+
           gomobile init
           gomobile version || true
 
@@ -72,37 +124,57 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           mkdir -p app/libs
           cd AndroidLibXrayLite
+
           go mod download
+
           export CGO_ENABLED=1
           export GOTOOLCHAIN=auto
+
           set +e
-          gomobile bind -v -target=android -androidapi 24 -ldflags='-s -w' -o ../app/libs/libv2ray.aar . 2>&1 | tee gomobile-build.log
+          gomobile bind -v \
+            -target=android \
+            -androidapi 24 \
+            -ldflags='-s -w' \
+            -o ../app/libs/libv2ray.aar . 2>&1 | tee gomobile-build.log
+
           RC=${PIPESTATUS[0]}
           set -e
+
           if [ "$RC" -ne 0 ]; then
-            echo "gomobile failed; last 120 log lines:"
+            echo "gomobile failed. Last 120 log lines:"
             tail -120 gomobile-build.log
             exit "$RC"
           fi
+
           test -s ../app/libs/libv2ray.aar
 
       - name: Validate generated AAR API
         shell: bash
         run: |
           set -euo pipefail
+
           test -s app/libs/libv2ray.aar
+
           mkdir -p /tmp/gozar-aar
+
           unzip -o -q app/libs/libv2ray.aar classes.jar -d /tmp/gozar-aar
+
           echo "Generated Java classes:"
-          jar tf /tmp/gozar-aar/classes.jar | grep -E 'CoreController|CoreCallbackHandler|Libv2ray' | head -60 || true
-          jar tf /tmp/gozar-aar/classes.jar | grep -q 'go/libv2ray/CoreController.class' || {
-            echo "ERROR: expected go.libv2ray.CoreController was not found."
-            echo "Inspect the generated classes above; the Java package name may have changed."
-            exit 1
-          }
-          echo "AAR validation passed. Size: $(stat -c%s app/libs/libv2ray.aar) bytes"
+          jar tf /tmp/gozar-aar/classes.jar \
+            | grep -E 'CoreController|CoreCallbackHandler|Libv2ray' \
+            | head -60 || true
+
+          jar tf /tmp/gozar-aar/classes.jar \
+            | grep -q 'go/libv2ray/CoreController.class' || {
+              echo "ERROR: go.libv2ray.CoreController was not found"
+              exit 1
+            }
+
+          echo "AAR validation passed."
+          echo "Size: $(stat -c%s app/libs/libv2ray.aar) bytes"
 
       - name: Upload AAR artifact
         uses: actions/upload-artifact@v4
@@ -129,9 +201,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           if ! gh release view core-aar -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create core-aar -R "$GITHUB_REPOSITORY" \
+            gh release create core-aar \
+              -R "$GITHUB_REPOSITORY" \
               --title "AndroidLibXrayLite AAR" \
               --notes "Generated Android AAR for the Gozar project."
           fi
-          gh release upload core-aar app/libs/libv2ray.aar --clobber -R "$GITHUB_REPOSITORY"
+
+          gh release upload core-aar \
+            app/libs/libv2ray.aar \
+            --clobber \
+            -R "$GITHUB_REPOSITORY"
